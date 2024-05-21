@@ -1,0 +1,4 @@
+# FGCE-Feasible-Group-Counterfactual-Explanations-for-Auditing-Fairness
+## Abstract
+
+Counterfactual explanations offer a popular local approach to explaining model decisions by identifying the minimum changes in an input instance necessary for altering the decision of the model. In this paper, we adopt a graph-based approach to generating counterfactuals for groups of instances. Our approach exploits a graph that captures feasibility and plausibility constraints and results in creating subgroups of instances with similar counterfactuals. We provide formulations of the problem that capture the various trade-offs in group counterfactual generation. We also propose a framework that leverages our approach for the task of auditing fairness. Finally, we present experimental results of the applicability of our approach for measuring and understanding unfairness.
