@@ -33,17 +33,39 @@ def load_dataset(datasetName='Student'):
     return pd.DataFrame([]), [], [], None, None, None, None, [], []
 
 
-def load_german_credit():
-    data_df = pd.read_csv(data_df = pd.read_csv(f"{FGCE_DIR}/data/GermanCredit.csv"))
+def load_german_credit():     
+    column_names = ["Existing-Account-Status", "Month-Duration",
+                              "Credit-History", "Purpose", "Credit-Amount",
+                              "Savings-Account", "Present-Employment", "Instalment-Rate",
+                              "Sex", "Guarantors", "Residence","Property", "Age",
+                              "Installment", "Housing", "Existing-Credits", "Job",
+                              "Num-People", "Telephone", "Foreign-Worker", "Status"]
+    status_sex_mapping = {
+        'A91': ('male', 'divorced/separated'),
+        'A92': ('female', 'divorced/separated/married'),
+        'A93': ('male', 'single'),
+        'A94': ('male', 'married/widowed'),
+        'A95': ('female', 'single')}
+     
+    data_df = pd.read_csv(f"{FGCE_DIR}/data/GermanCredit.data", header=None, delim_whitespace = True)
+    data_df.columns = column_names
+    data_df[data_df.columns[-1]] = 2 - data_df[data_df.columns[-1]]
+    data_df['Sex'], data_df['Marital-Status'] = zip(*data_df['Sex'].map(status_sex_mapping))
+    columns = list(data_df.columns)
+    columns.insert(columns.index('Status'), columns.pop(columns.index('Marital-Status')))
+    data_df = data_df[columns]
     TARGET_COLUMNS = data_df.columns[-1]
     data = data_df.drop(columns=[TARGET_COLUMNS])
-    data, numeric_columns, categorical_columns = preprocess_dataset(data, continuous_features=[])
+    data_df['Existing-Account-Status'] = data_df['Existing-Account-Status'].apply(lambda x: 'A10' if x == 'A14' else x)
+    data_df['Savings-Account'] = data_df['Savings-Account'].apply(lambda x: 'A60' if x == 'A65' else x)
+    data, numeric_columns, categorical_columns, one_hot_encode_features = preprocess_dataset(data, continuous_features=["Credit-Amount"], datasetName="GermanCredit")
+    data_df_copy = data.copy()
     min_max_scaler = preprocessing.MinMaxScaler()
     data_scaled = min_max_scaler.fit_transform(data)
     data = pd.DataFrame(data_scaled, columns=data.columns)
     FEATURE_COLUMNS = data.columns
     data[TARGET_COLUMNS] = data_df[TARGET_COLUMNS]
-    return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, []
+    return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, [], one_hot_encode_features
 
 def load_student():
     data_df = pd.read_csv(f"{FGCE_DIR}/data/student.csv")
