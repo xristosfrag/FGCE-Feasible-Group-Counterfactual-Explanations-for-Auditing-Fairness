@@ -82,5 +82,41 @@ class feasibility_consts:
                 return False
         return True
 
+    def check_constraints_german_credit(self, source, dest):
+        """
+        # Check if the constraints are satisfied for the German Credit dataset
 
+        # Parameters:
+        ------------
+        # source: (list)
+        - The source feature values
+        # dest: (list)
+        - The destination feature values
 
+        # Returns:
+        ------------
+        - bool: True if the constraints are satisfied, False otherwise
+        """
+        delta = dest - source
+        credit_history_high = ['Credit-History_3', 'Credit-History_4']
+        credit_history_low = ['Credit-History_0', 'Credit-History_1', 'Credit-History_2']
+        high_indices = [list(self._feature_columns).index(ch) for ch in credit_history_high if ch in self._feature_columns]
+        low_indices = [list(self._feature_columns).index(ch) for ch in credit_history_low if ch in self._feature_columns]
+        for idx in high_indices:
+            if (source[idx] == 1 and dest[idx] == 0):
+                # Dont allow connections to higher indices
+                for idx2 in high_indices:
+                    if idx2 > idx and dest[idx2] == 1:
+                        return False
+        for idx in low_indices:
+            if (source[idx] == 1 and dest[idx] == 0):
+                if any((dest[idx2] == 1) for idx2 in high_indices):
+                    return False
+        # Check all other features constraints as the previous method
+        for i, feat in enumerate(self._feature_columns):
+            if feat not in credit_history_high + credit_history_low:
+                if ((delta[i] != 0) and (self._feasibility_set[i]._mutable is False)):
+                    return False
+                if (delta[i] * self._feasibility_set[i]._step_direction < 0):
+                    return False
+        return True
