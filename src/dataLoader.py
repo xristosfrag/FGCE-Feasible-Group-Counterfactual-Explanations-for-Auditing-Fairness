@@ -71,14 +71,14 @@ def load_student():
     data_df = pd.read_csv(f"{FGCE_DIR}/data/student.csv")
     TARGET_COLUMNS = data_df.columns[-1]
     data = data_df.drop(columns=[TARGET_COLUMNS])
-    data, numeric_columns, categorical_columns = preprocess_dataset(data, continuous_features=[])
+    data, numeric_columns, categorical_columns,one_hot_encode_features = preprocess_dataset(data, continuous_features=[])
     data_df_copy = data.copy()
     FEATURE_COLUMNS = data.columns
     data[TARGET_COLUMNS] = data_df[TARGET_COLUMNS]
     min_max_scaler = preprocessing.MinMaxScaler()
     data_scaled = min_max_scaler.fit_transform(data)
     data = pd.DataFrame(data_scaled, columns=data.columns)
-    return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, []
+    return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, [], one_hot_encode_features
 
 def load_compas():
     X, y = fetch_compas()
