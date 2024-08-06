@@ -155,11 +155,12 @@ def preprocess_dataset(df, continuous_features=[], one_hot_encode=True, datasetN
     onehot_encoder = OneHotEncoder()
     numeric_columns = []
     categorical_columns = []
+    one_hot_encode_features = []
 
     for col in df.columns:
         if df[col].dtype == 'object' or df[col].dtype == 'category' and col not in continuous_features:
             categorical_columns.append(col)
-            if len(df[col].unique()) == 2:
+            if len(df[col].unique()) == 2 or (datasetName == 'GermanCredit' and col in ['Existing-Account-Status', 'Savings-Account', 'Guarantors', 'Installment', 'Job', 'Property', 'Housing', 'Present-Employment']):
                 df[col] = label_encoder.fit_transform(df[col])
             elif one_hot_encode or (one_hot_encode and datasetName == "Adult" and col == 'race'):
                 encoded_values = onehot_encoder.fit_transform(df[[col]])
@@ -167,6 +168,7 @@ def preprocess_dataset(df, continuous_features=[], one_hot_encode=True, datasetN
                 encoded_df = pd.DataFrame(encoded_values.toarray(), columns=new_cols)
                 df = pd.concat([df, encoded_df], axis=1)
                 df.drop(col, axis=1, inplace=True)
+                one_hot_encode_features.extend(new_cols)
         elif df[col].dtype == 'object' or df[col].dtype == 'category' and df[col].str.isnumeric().all() and col not in continuous_features:
             df[col] = df[col].astype(int) 
             categorical_columns.append(col)
@@ -181,4 +183,4 @@ def preprocess_dataset(df, continuous_features=[], one_hot_encode=True, datasetN
         else:
             if len(df[col].unique()) > 2:
                 numeric_columns.append(col)
-    return df, numeric_columns, categorical_columns
+    return df, numeric_columns, categorical_columns, one_hot_encode_features
