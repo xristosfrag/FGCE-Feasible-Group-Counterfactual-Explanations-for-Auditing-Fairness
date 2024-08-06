@@ -99,13 +99,13 @@ def load_compas():
     return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, [], one_hot_encode_features
 
 def load_adult():
-    data_df = pd.read_csv(f"{FGCE_DIR}/data/adult1.csv")
+    data_df = pd.read_csv(f"{FGCE_DIR}/data/adult.csv")
     TARGET_COLUMNS = data_df.columns[-1]
     data = data_df.drop(columns=[TARGET_COLUMNS])
 
     data['race'] = data['race'].astype(str)
 
-    data, numeric_columns, categorical_columns = preprocess_dataset(data, continuous_features=[])
+    data, numeric_columns, categorical_columns, one_hot_encode_features = preprocess_dataset(data, continuous_features=[])
     data_df_copy = data.copy()
     min_max_scaler = preprocessing.MinMaxScaler()
     data_scaled = min_max_scaler.fit_transform(data)
@@ -114,7 +114,7 @@ def load_adult():
     FEATURE_COLUMNS = data.columns
     data[TARGET_COLUMNS] = data_df[TARGET_COLUMNS]
 
-    return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, []
+    return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, [], one_hot_encode_features
 
 def load_heloc():
     data_df = pd.read_csv(f"{FGCE_DIR}/data/heloc.csv")
