@@ -41,7 +41,7 @@ sep = get_path_separator()
 def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", group_identifier_value=None, 
 					skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, skip_bandwith_calculation=True, roundb=None):
-	data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, continuous_featues = load_dataset(datasetName=datasetName)
+	data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, continuous_featues, one_hot_encode_features = load_dataset(datasetName=datasetName)
 	"""
 	Initialize the FGCE algorithm
 	
