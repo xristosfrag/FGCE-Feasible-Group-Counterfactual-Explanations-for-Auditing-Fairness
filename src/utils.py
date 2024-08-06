@@ -281,12 +281,23 @@ def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
         An instance of the Feasibility class.
     """
     feasibility_constraints_instance = Feasibility.feasibility_consts(FEATURE_COLUMNS)
-    if (dataset_name == 'german_credit'):
-        feasibility_constraints_instance.set_constraint('No of dependents', mutability=False)
-        feasibility_constraints_instance.set_constraint('Sex & Marital Status', mutability=False)               
-        feasibility_constraints_instance.set_constraint('Age (years)', step_direction=1)
-        feasibility_constraints_instance.set_constraint('Duration in Current address', step_direction=1)
-        feasibility_constraints_instance.set_constraint('Length of current employment', step_direction=1)
+    if (dataset_name == 'GermanCredit'):
+        feasibility_constraints_instance.set_constraint('Month-Duration', step_direction=-1)
+        feasibility_constraints_instance.set_constraint('Credit-Amount', step_direction=-1)      
+        feasibility_constraints_instance.set_constraint('Instalment-Rate', step_direction=-1)
+        feasibility_constraints_instance.set_constraint('Installment', step_direction=-1) 
+        feasibility_constraints_instance.set_constraint('Property', step_direction=-1)
+        feasibility_constraints_instance.set_constraint('Existing-Account-Status', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Savings-Account', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Age', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Present-Employment', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Guarantors', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Housing', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Job', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Telephone', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Sex', mutability=False)
+        feasibility_constraints_instance.set_constraint('Marital-Status', mutability=False, exact_match=True)
+        feasibility_constraints_instance.set_constraint('Foreign-Worker', mutability=False)
     elif (dataset_name == 'Student'):
         feasibility_constraints_instance.set_constraint('sex', mutability=False)
         feasibility_constraints_instance.set_constraint('age', step_direction=1)
@@ -303,7 +314,7 @@ def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
         feasibility_constraints_instance.set_constraint('juv_fel_count', step_direction=-1)
         feasibility_constraints_instance.set_constraint('juv_misd_count', step_direction=-1)
         feasibility_constraints_instance.set_constraint('juv_other_count', step_direction=-1)
-        feasibility_constraints_instance.set_constraint('c_charge_degree', step_direction=-1)                                                                                                                                   
+        feasibility_constraints_instance.set_constraint('c_charge_degree', step_direction=-1)                                                                                                                                      
     elif (dataset_name == 'Heloc'):                                                                                                                                                                                                                                                               
         feasibility_constraints_instance.set_constraint('NumSatisfactoryTrades', step_direction=1)                                                                                                              
         feasibility_constraints_instance.set_constraint('PercentTradesNeverDelq', step_direction=1)
@@ -320,7 +331,7 @@ def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
         feasibility_constraints_instance.set_constraint('education', step_direction=1, exact_match=False)
         feasibility_constraints_instance.set_constraint('educational-num', step_direction=1)
         feasibility_constraints_instance.set_constraint('race', mutability=False, exact_match=True)
-        feasibility_constraints_instance.set_constraint('sex', mutability=False)
+        feasibility_constraints_instance.set_constraint('sex', mutability=False)        
     else:
         print("Unknown dataset. Initializing with no constraints.")
     return feasibility_constraints_instance
