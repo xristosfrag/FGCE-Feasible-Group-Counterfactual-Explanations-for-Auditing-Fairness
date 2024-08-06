@@ -103,6 +103,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	- edge_connectivity: (float)
 		the edge connectivity
 	"""
+	if 'GermanCredit' in datasetName:
+		datasetName = 'GermanCredit'
 	print("Data shape:", data.shape)
 	TEST_SIZE = 0.3
 
