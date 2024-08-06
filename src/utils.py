@@ -22,7 +22,7 @@ class GraphBuilder:
         self.exclude_columns = exclude_columns
         self.temp_nodes = set()
 
-    def compute_pairwise_distances_and_graph_within_subgroups(self, datasetName, data, epsilon, feasibility_constraints_instance, roundb):
+    def compute_pairwise_distances_within_subgroups_and_graph(self, datasetName, data, epsilon, feasibility_constraints_instance, roundb):
         subgroups = self.group_data_based_on_constraints(datasetName, data)
         pairwise_distances = np.zeros((len(data), len(data)))
     
@@ -35,7 +35,10 @@ class GraphBuilder:
             pairwise_distances = np.round(pairwise_distances, roundb)
 
         for subgroup_key, subgroup in subgroups.items():
-            subgroup_distances = self.pairwise_distances_and_graph(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
+            if datasetName == 'GermanCredit':
+                subgroup_distances = self.pairwise_distances_and_graph_german_credit(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
+            else:
+                subgroup_distances = self.pairwise_distances_and_graph(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
         return pairwise_distances, self.G, self.densities
 
     def group_data_based_on_constraints(self, datasetName, data):
@@ -46,6 +49,12 @@ class GraphBuilder:
         if datasetName == 'Student':
             for sex_value, sex_subgroup in data.groupby('sex'):
                 subgroups[sex_value] = sex_subgroup
+            
+        if datasetName == 'GermanCredit':
+            for sex_value, sex_subgroup in data.groupby('Sex'):
+                subgroups[sex_value] = sex_subgroup
+
+            self.feasibility_constraints.set_feature_columns_to_check(["Sex"])
             
         elif datasetName in ['Compas', 'Adult']:
             sex_column = 'sex'
@@ -80,6 +89,37 @@ class GraphBuilder:
                 if dist < epsilon:
                     xy = feasibility_constraints_instance.check_constraints(data_i, data_j)
                     yx = feasibility_constraints_instance.check_constraints(data_j, data_i)
+                    if xy or yx:
+                        density = self.kernel.kernelKDE(data_i, data_j, dist)
+                        wij = dist * density
+                        if isinstance(wij, np.ndarray) and wij.size == 1:
+                            wij = wij.item()
+                        if xy:
+                            edges.append((index_i, index_j, {'distance': dist, 'wij': wij}))
+                            self.densities[(index_i, index_j)] = density
+                        if yx:
+                            edges.append((index_j, index_i, {'distance': dist, 'wij': wij}))
+                            self.densities[(index_j, index_i)] = density
+        self.G.add_edges_from(edges)
+    
+    def pairwise_distances_and_graph_german_credit(self, data, epsilon, pairwise_distances, feasibility_constraints_instance):
+        data_values = data.to_numpy()
+        edges = []
+
+        for i in tqdm(range(len(data)), desc="Building graph for subgroup..."):
+            for j in range(i + 1, len(data)):
+                index_i = int(data.index[i])
+                index_j = int(data.index[j])
+                data_i = data_values[i]
+                data_j = data_values[j]
+                dist = None
+                xy = False
+                yx = False
+                dist = pairwise_distances[index_i, index_j]
+
+                if dist < epsilon:
+                    xy = feasibility_constraints_instance.check_constraints_german_credit(data_i, data_j)
+                    yx = feasibility_constraints_instance.check_constraints_german_credit(data_j, data_i)
                     if xy or yx:
                         density = self.kernel.kernelKDE(data_i, data_j, dist)
                         wij = dist * density
