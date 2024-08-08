@@ -351,8 +351,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	- gfce_wij_distances: (float)
 		the average path cost of the FGCE algorithm
 	"""
-	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns,\
-		positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
 				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
 	# =========================================================================================================================
 	# 												GROUP CFES
@@ -543,9 +542,8 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 	- gfce_wij_distances: (float)
 		the average path cost of the FGCE algorithm
 	"""
-	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns,\
-		positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation)
+	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
@@ -740,9 +738,8 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 	- results: (dict)
 		dictionary containing the final results of the FGCE-Group algorithm
 	"""
-	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns,\
-		positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation)
+	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
