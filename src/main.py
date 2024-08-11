@@ -221,9 +221,6 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		raise ValueError(f"The group_identifier column {group_identifier} does not contain numerical values")
 
 	FN_negatives_by_group = utils.get_false_negatives_by_group(FN, group_identifier, normalized_group_identifer_value, data, numeric_columns)
-	print(f"FN_negatives_by_group keys: {FN_negatives_by_group.keys()}")
-	for key, v in FN_negatives_by_group.items():
-		print(key, v.keys())
 
 	if skip_distance_calculation and skip_graph_creation and\
 				os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}Graph_{epsilon}.pkl")\
