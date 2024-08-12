@@ -725,11 +725,6 @@ class FGCE:
 			results[group]['Median distance'] = median_distance
 
 			print(f"\n\nGroup {group} - Coverage: {coverage}%")
-			print(f"Group {group} - Covered Points ({len(covered_points_for_group)}): ", covered_points_for_group)
-			print(f"Group {group} - FNs covered in subgraph: ", false_negatives_covered_covered_points_for_group)
-			print(f"Group {group} - Not possible to cover points ({len(not_possible_to_cover)}): ", not_possible_to_cover)
-			print(f"Group {group} - Possible to cover points ({len(possible_to_cover_points)}): ", possible_to_cover_points)
-			print(f"Group {group} - FNs: ", FN_negatives_by_group[group].keys())
 			print(f"Group {group} - Avg. distance: {avg_distance}")
 			print(f"Group {group} - Median distance: {median_distance}")
 
