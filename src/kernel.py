@@ -149,6 +149,25 @@ class Kernel_obj:
 				else:
 					bandwith = self.scotts_rule_bandwidth(data).mean()
 			return bandwith
+		
+		elif dataset_Name == "GermanCredit":
+			bandwith = 0
+			if bandwith_approch == "optimal":
+				if skip_bandwith_calculation:
+					bandwith = 0.09658620689655173
+				else:
+					bandwith = self.optimize_bandwidth(data, all_features=True)
+			elif bandwith_approch == "mean_optimal":
+				optimal_bandwidths = {}
+				for column in data.columns:
+					optimal_bandwidths[column] = self.optimize_bandwidth(data[column], all_features=False)
+				bandwith = np.mean(list(optimal_bandwidths.values()))
+			elif bandwith_approch == "mean_scotts_rule":
+				if skip_bandwith_calculation:
+					bandwith = 0.10679064225661136
+				else:
+					bandwith = self.scotts_rule_bandwidth(data).mean()
+			return bandwith	
 		else:
 			"""
 			For other datasets, return a default value. To be updated based on needs.
