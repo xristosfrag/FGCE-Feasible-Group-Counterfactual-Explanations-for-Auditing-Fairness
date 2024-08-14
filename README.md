@@ -9,16 +9,12 @@ Our experimental results on benchmark datasets demonstrate that our approach eff
 
 To install the required dependencies for running the FGCE framework, follow these steps:
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/FGCE-Feasible-Group-Counterfactual-Explanations-for-Auditing-Fairness.git
-
-2. **Navigate to the project directory and then create a virtual environment (optional but recommended)**:
+1. **Navigate to the project directory and then create a virtual environment (optional but recommended)**:
    ```bash
     pip install virtualenv
     python<version> -m venv <virtual-environment-name>
     source <virtual-environment-name>/bin/activate  # On Windows, use `<virtual-environment-name>\Scripts\activate`
 
-3. **Install the required packages**:
+2. **Install the required packages**:
    ```bash
     pip install -r requirements.txt
