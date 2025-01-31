@@ -5,7 +5,7 @@ from FGCE import *
 
 EPSILON = 1e-8
 
-class Kernel_obj:
+class Kernel:
 	def __init__(self, dataset_Name, data, skip_bandwith_calculation=True, bandwith_approch="optimal"):
 		bandwidth = self.get_bandwith(dataset_Name, data, skip_bandwith_calculation=skip_bandwith_calculation, bandwith_approch=bandwith_approch)
 		print(f"Bandwidth: {bandwidth}")
