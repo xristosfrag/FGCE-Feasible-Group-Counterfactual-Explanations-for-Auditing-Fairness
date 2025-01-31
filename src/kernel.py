@@ -19,9 +19,13 @@ class Kernel:
 		"""
 		KDE kernel values
 		"""
-		mean = 0.5*(xi + xj)
-		density_at_mean = np.exp(self._kernel.score_samples([mean]))
+		density_at_mean = np.exp(self._kernel.score_samples([0.5*(xi + xj)]))
 		return (1/(density_at_mean + EPSILON))*dist
+	
+	def kernelKDEdata(self, X, distances):
+		indices = list(X.keys())
+		densities = np.exp(self._kernel.score_samples(list(X.values())))
+		return {pair: (1/(density + EPSILON)) * distances[pair] for pair, density in zip(indices, densities)}
 	
 	def scotts_rule_bandwidth(self, data):
 		"""
