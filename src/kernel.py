@@ -64,7 +64,6 @@ class Kernel:
 		grid.fit(data_reshaped)
 		return grid.best_params_['bandwidth']
 
-	
 	def get_bandwith(self, dataset_Name, data, skip_bandwith_calculation, bandwith_approch="optimal"):
 		"""
 		Get the bandwidth for the KDE.
@@ -79,7 +78,7 @@ class Kernel:
 		- float: Bandwidth for the KDE.
 
 		"""
-		print(f"Calculating bandwidth for {dataset_Name}...")
+		print(f"Get bandwidth for {dataset_Name}...")
 		if dataset_Name == "Compas":
 			bandwith = 0
 			if bandwith_approch == "optimal":
@@ -107,7 +106,6 @@ class Kernel:
 				if skip_bandwith_calculation:
 					bandwith = 0.09317241379310345
 				else:
-					print("Optimizing bandwidth for all features...")
 					bandwith = self.optimize_bandwidth(data, all_features=True)
 			elif bandwith_approch == "mean_optimal":
 				optimal_bandwidths = {}
@@ -135,7 +133,10 @@ class Kernel:
 					optimal_bandwidths[column] = self.optimize_bandwidth(data[column], all_features=False)
 				bandwith = np.mean(list(optimal_bandwidths.values()))
 			elif bandwith_approch == "mean_scotts_rule":
-				bandwith = self.scotts_rule_bandwidth(data).mean()
+				if skip_bandwith_calculation:
+					bandwith = 0.06888248705149994
+				else:
+					bandwith = self.scotts_rule_bandwidth(data).mean()
 			return bandwith
 		
 		elif dataset_Name == "Adult":
@@ -153,7 +154,7 @@ class Kernel:
 				else:
 					bandwith = self.scotts_rule_bandwidth(data).mean()
 			return bandwith
-		
+
 		elif dataset_Name == "GermanCredit":
 			bandwith = 0
 			if bandwith_approch == "optimal":
