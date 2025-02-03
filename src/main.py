@@ -107,18 +107,11 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		datasetName = 'GermanCredit'
 	print("Data shape:", data.shape)
 	TEST_SIZE = 0.3
-
 	X = data[FEATURE_COLUMNS]
-	y = data[TARGET_COLUMNS]
 
 	data_np = data.to_numpy()
 	attr_col_mapping = {col: i for i, col in enumerate(data.columns)}
-
 	X = data_np[:, [attr_col_mapping[col] for col in FEATURE_COLUMNS]]
-	if isinstance(TARGET_COLUMNS, str):
-		y = data_np[:, attr_col_mapping[TARGET_COLUMNS]]
-	else:
-		y = data_np[:, [attr_col_mapping[col] for col in TARGET_COLUMNS]]
 
 	X_train, X_test, y_train, y_test = train_test_split(
 		data[FEATURE_COLUMNS],
