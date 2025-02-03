@@ -264,6 +264,21 @@ def get_false_negatives_by_group(FN, group_identifier_column, group_identifier_v
     
     return groups
 
+def serialize_json(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()  # Convert NumPy arrays to lists
+    elif isinstance(obj, np.int64) or isinstance(obj, np.int32):
+        return int(obj)  # Convert NumPy integers to Python int
+    elif isinstance(obj, np.float64) or isinstance(obj, np.float32):
+        return float(obj)  # Convert NumPy floats to Python float
+    elif isinstance(obj, set):
+        return list(obj)  # Convert sets to lists
+    elif isinstance(obj, dict):
+        return {str(k): serialize_json(v) for k, v in obj.items()}  # Recursively fix dictionaries
+    elif isinstance(obj, list):
+        return [serialize_json(i) for i in obj]  # Recursively fix lists
+    return obj  # Return as is if no conversion is needed
+
 def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
     """
     Get the feasibility constraints for a dataset.
