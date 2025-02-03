@@ -121,17 +121,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		shuffle=True
 	)
 
-	X_train_np = X_train.to_numpy()
-	X_test_np = X_test.to_numpy()
-	y_train_np = y_train.to_numpy().reshape(-1, 1)
-	y_test_np = y_test.to_numpy().reshape(-1, 1)
-
-	data_train = np.concatenate((X_train_np, y_train_np), axis=1)
-	data_test = np.concatenate((X_test_np, y_test_np), axis=1)
-
-	index_mapping = {new_index: original_index for new_index, original_index in enumerate(X_test.index)}
-
-	print("Data train:", data_train.shape)
+	print("Data size:", X_train.shape)
 	print("Data Train columns:", data.columns)
 	print("Target columns:", TARGET_COLUMNS)
 
@@ -140,7 +130,10 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 
 	if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}"):
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}")
-	
+		
+	train_model = None
+	param_grid = None
+	model = None
 	if classifier == "lr":
 		if skip_model_training and "LR_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
 			print("Loading classifier from file ...")
@@ -160,45 +153,110 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	elif classifier == "xgb":
 		if skip_model_training and "XGB_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
 			print("Loading classifier from file ...")
-			clf = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}XGB_classifier_data.pk", "rb"))
+			model = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}XGB_classifier_data.pk", "rb"))
 		else:
-			clf = XGBClassifier(random_state=utils.random_seed)
-			clf.fit(X_train, y_train)
+			param_grid = {
+			'n_estimators': [50, 100, 200, 500],  # Increase upper bound
+			'max_depth': [3, 5, 7, 10, 15],  # Add deeper trees
+			'learning_rate': [0.01, 0.05, 0.1, 0.2],  # Improve learning rate choices
+			'subsample': [0.5, 0.7, 0.9, 1],  # Add 0.9 to test near-full dataset
+			'colsample_bytree': [0.5, 0.7, 0.9, 1],  # Add 0.9 for better diversity
+			'gamma': [0, 0.1, 0.5, 1, 5],  # Prevent overfitting
+			'reg_alpha': [0, 0.01, 0.1, 1],  # L1 regularization
+			'reg_lambda': [1, 5, 10],  # L2 regularization
+			}
 
-			print("Training accuracy:", clf.score(X_train, y_train))
-			print("Testing accuracy:", clf.score(X_test, y_test))
-
-			if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-				os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}")
-
-			pk.dump(clf, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}XGB_classifier_data.pk", 'wb'))
-
+			model = xgb.XGBClassifier(
+				objective="binary:logistic",
+				eval_metric="logloss"
+			)
+			train_model = 'xgb'
+	elif classifier == "rf":
+		if skip_model_training and "RF_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
+			print("Loading classifier from file ...")
+			model = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}RF_classifier_data.pk", "rb"))
+		else:
+			param_grid = {
+			'n_estimators': [100, 200, 300, 400],  # Number of trees
+			'max_depth': [None, 10, 20, 30],  # Maximum depth of each tree
+			'min_samples_split': [2, 5, 10],  # Minimum samples to split a node
+			'min_samples_leaf': [1, 2, 4],  # Minimum samples required to be a leaf node
+			'bootstrap': [True, False],  # Whether to use bootstrap sampling
+			}
+			model = RandomForestClassifier(random_state=42)
+			train_model = 'rf'
 	elif classifier == "dnn":
 		if skip_model_training and "DNN_classifier_data.h5" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
 			print("Loading classifier from file ...")
-			clf = tf.keras.models.load_model(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}DNN_classifier_data.keras")
+			model = tf.keras.models.load_model(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}DNN_classifier_data.keras")
 		else:
-			clf = Sequential()
-			clf.add(Input(shape=X_train.shape[1:]))
-			clf.add(Dense(64, activation='relu'))
-			clf.add(Dropout(0.5))
-			clf.add(Dense(32, activation='relu'))
-			clf.add(Dropout(0.5))
-			clf.add(Dense(1, activation='sigmoid'))
+			def create_dnn_model(optimizer='adam', dropout_rate=0.5, hidden_units=32):
+				model = Sequential()
+				model.add(Input(shape=(X_train.shape[1],)))
+				model.add(Dense(hidden_units, activation='relu'))
+				model.add(Dropout(dropout_rate))
+				model.add(Dense(hidden_units // 2, activation='relu'))
+				model.add(Dense(1, activation='sigmoid'))
+				model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+				return model
 
-			clf.compile(optimizer='adam',
-						loss='binary_crossentropy',
-						metrics=['accuracy'])
-			clf.fit(X_train, y_train, epochs=10, batch_size=16, validation_split=0.1)  
+			# Wrap the model using KerasClassifier
+			model = KerasClassifier(
+				model=create_dnn_model,
+				verbose=0,
+				epochs=10,  # Lower epochs for faster tuning
+				batch_size=32
+			)
 
-			print("Training accuracy:", clf.evaluate(X_train, y_train)[1])
-			print("Testing accuracy:", clf.evaluate(X_test, y_test)[1])
-
-			if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-				os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}")
-			clf.save(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}DNN_classifier_data.keras")
+			# Define hyperparameter search space
+			param_grid = {
+				'model__optimizer': ['adam', 'rmsprop'],
+				'model__dropout_rate': [0.3, 0.5],
+				'model__hidden_units': [32, 64],
+				'batch_size': [8, 16],  # Smaller batch sizes
+				'epochs': [5, 10]
+			}
+			train_model = 'dnn'
 	else:
 		raise ValueError("Invalid classifier type. Supported types are 'lr', 'xgb', and 'dnn'.")
+
+	if train_model != None:	
+		# Perform hyperparameter tuning
+		random_search = RandomizedSearchCV(
+			estimator=model,
+			param_distributions=param_grid,
+			n_iter=15,  # Run more iterations for better search
+			cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
+			scoring='balanced_accuracy',  # Better than recall-only
+			## dont assign all cpus to the search. istead assing max - 5
+			n_jobs=max(1, (os.cpu_count() or 1) - 5),
+			verbose=0,
+			random_state=42
+		)
+
+		print(f"Starting {classifier} hyperparameter search...")
+		random_search.fit(X_train, y_train)
+
+		# Retrieve best model (already trained during hyperparameter search)
+		model = random_search.best_estimator_
+
+		# Print results
+		print(f"\nBest {classifier} Hyperparameters: {random_search.best_params_}")
+		print(f"Best cross-validated accuracy: {random_search.best_score_:.4f}")
+		print(f"Training Accuracy: {model.score(X_train, y_train):.4f}")
+		print(f"Testing Accuracy: {model.score(X_test, y_test):.4f}")
+
+	if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
+		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}")
+	if train_model == 'lr':
+		pk.dump(model, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}LR_classifier_data.pk", 'wb'))
+	elif train_model == 'xgb':
+		pk.dump(model, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}XGB_classifier_data.pk", 'wb'))
+	elif train_model == 'rf':
+		pk.dump(model, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}RF_classifier_data.pk", 'wb'))
+	elif train_model == 'dnn':
+		model.save(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}DNN_classifier_data.keras")
+
 
 	start_time = time.time()
 
