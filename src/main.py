@@ -129,7 +129,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 
 	if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}"):
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}")
-		
+
 	train_model = None
 	param_grid = None
 	model = None
@@ -460,12 +460,12 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 			os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs")
 
 		try:
-		with open(file_path, "w") as outfile:
-			json.dump(results, outfile)
+			with open(file_path, "w") as outfile:
+				json.dump(results, outfile)
 		except Exception as e:
 			print("Error saving results:", e)
 			print("Trying to serialize the results...")
-			results_serializable = make_json_serializable(results)
+			results_serializable = serielize_json(results)
 			with open(file_path, "w") as outfile:
 				json.dump(results_serializable, outfile)
     # =========================================================================================================================
@@ -676,12 +676,12 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 			os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs")
 
 		try:
-		with open(file_path, "w") as outfile:
+			with open(file_path, "w") as outfile:
 				json.dump(results, outfile)
 		except Exception as e:
 			print("Error saving results:", e)
 			print("Trying to serialize the results...")
-			results_serializable = make_json_serializable(results)
+			results_serializable = serialize_json(results)
 			with open(file_path, "w") as outfile:
 				json.dump(results_serializable, outfile)
 	# =========================================================================================================================
