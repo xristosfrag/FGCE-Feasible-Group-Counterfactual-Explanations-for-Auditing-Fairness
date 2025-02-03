@@ -298,7 +298,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		graph = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}Graph_{epsilon}.pkl", "rb"))
 		kernel = Kernel(datasetName, X, skip_bandwith_calculation=skip_bandwith_calculation, bandwith_approch=bandwith_approch)
 		kernel.fitKernel(X)
-		fgce = FGCE(data_np, X, kernel, FEATURE_COLUMNS, TARGET_COLUMNS, epsilon, clf)
+		fgce = FGCE(data_np, kernel, FEATURE_COLUMNS, TARGET_COLUMNS, epsilon, model)
 		feasibility_constraints = utils.getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name=datasetName)
 		fgce.set_graph(graph)
 
@@ -307,7 +307,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	else:
 		kernel = Kernel(datasetName, X, skip_bandwith_calculation=skip_bandwith_calculation, bandwith_approch=bandwith_approch)
 		kernel.fitKernel(X)
-		fgce = FGCE(data_np, X, kernel, FEATURE_COLUMNS, TARGET_COLUMNS, epsilon, clf)
+		fgce = FGCE(data_np, kernel, FEATURE_COLUMNS, TARGET_COLUMNS, epsilon, model)
 		feasibility_constraints = utils.getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name=datasetName)
 
 		start_time = time.time()

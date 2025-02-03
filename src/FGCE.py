@@ -15,9 +15,8 @@ random_seed = 482
 np.random.seed(random_seed)
 
 class FGCE:
-	def __init__(self, data, X, kernel_obj, feature_columns, target_column, epsilon, clf=None):
+	def __init__(self, data, kernel_obj, feature_columns, target_column, epsilon, clf=None):
 		self._data = data
-		self.X = X
 		self._epsilon = epsilon
 		self._clf = clf
 		self._kernel_obj = kernel_obj
