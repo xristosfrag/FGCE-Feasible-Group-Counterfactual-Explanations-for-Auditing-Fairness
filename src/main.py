@@ -259,10 +259,28 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 
 
 	start_time = time.time()
+	data = data.drop_duplicates()
+	data = data.reset_index(drop=True)
+	data_df_copy = data_df_copy.drop_duplicates()
+	data_df_copy = data_df_copy.reset_index(drop=True)
 
-	FN, negative_points, positive_points, FP = utils.get_FN_Negatives_Positives(data_test, clf, tp, attr_col_mapping, FEATURE_COLUMNS, TARGET_COLUMNS, index_mapping)
+	X_train, X_test, y_train, y_test = train_test_split(
+		data[FEATURE_COLUMNS],
+		data[TARGET_COLUMNS],
+		test_size=TEST_SIZE,
+		random_state=utils.random_seed,
+		shuffle=True
+	)
+	positive_points = data[model.predict(data[FEATURE_COLUMNS]) == 1]
+	print(f"Positive points: {len(positive_points)}")
+	negative_points = X_test[model.predict(X_test[FEATURE_COLUMNS]) == 0]
+	common_indices = negative_points.index.intersection(y_test[y_test == 1].index)
+	FN = negative_points.loc[common_indices]
+	print(f"FN: {len(FN)}")
+	positive_points = {index: row.to_numpy() for index, row in positive_points.iterrows()}
+	negative_points = {index: row.to_numpy() for index, row in negative_points.iterrows()}
+	FN = {index: row.to_numpy() for index, row in FN.iterrows()}
 
-	print(f"FN: {len(FN)} - Negatives: {len(negative_points)} - FP: {len(FP)} - Positives: {len(positive_points)}")
 	normalized_group_identifer_value = None
 	if group_identifier in numeric_columns and group_identifier_value is not None:
 		print(f"Group identifier value: {group_identifier_value}")
