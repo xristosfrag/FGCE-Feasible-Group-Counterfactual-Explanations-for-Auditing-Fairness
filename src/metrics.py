@@ -23,17 +23,36 @@ def filter_subdict(experiment, allowed_subkeys):
 
 allowed_subkeys = ["Coverage", "Avg. distance", "Avg. path cost"]
 
-def kAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_limit_for_k, lower_limit_range_for_d, max_possible_distance_for_these_features, step):
+def max_possible_distance_in_dataset(datasetName):
+    _, FEATURE_COLUMNS, _, _, _, _,\
+          _, _, one_hot_encode_features = load_dataset(datasetName=datasetName)
+    feature_set = set()
+    for feature in FEATURE_COLUMNS:
+        if feature == 'target':
+            continue
+        if feature in one_hot_encode_features:
+            # Extract the prefix to count only once
+            prefix = feature.split('_')[0]
+            feature_set.add(prefix)
+        else:
+            feature_set.add(feature)
+    
+    return np.sqrt(len(feature_set))
+
+def kAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_limit_for_k, lower_limit_range_for_d, steps):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
+
+    max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
+    step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
 
     for cfes in range(1, upper_limit_for_k):
         auc_matrix[cfes] = {}
         results = {}
         
         for max_d in np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, step):
-            r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=0.6, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+            r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=0.5, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=True, skip_gcfe_calculation=False, skip_graph_creation=True,
                                 max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs")[0], allowed_subkeys)
             r.pop("Node Connectivity")
@@ -69,20 +88,23 @@ def kAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_l
             normalized_auc = np.round(auc(x, group_coverages_array) / max_auc, 2)
             auc_matrix[cfes][key] = normalized_auc
     
-    return saturation_points, cov_for_saturation_points, auc_matrix    
+    return saturation_points, cov_for_saturation_points, auc_matrix
 
-def dAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_limit_for_k, max_possible_distance_for_these_features, step):
+def dAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_limit_for_k, steps):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
     cov_for_saturation_points = {}
+
+    max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
+    step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
 
     for d in list([np.arange(0.1, max_possible_distance_for_these_features, step)])[0]:
         d = np.round(d, 2)
         auc_matrix[d] = {}
         results = {}
         for cfes in np.arange(1, upper_limit_for_k, 1):
-            r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=0.6, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+            r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=0.5, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                     skip_model_training=True, skip_gcfe_calculation=False, skip_graph_creation=True,
                                     max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs")[0], allowed_subkeys))
             
