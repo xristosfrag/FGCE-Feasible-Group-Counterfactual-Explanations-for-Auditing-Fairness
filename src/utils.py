@@ -38,7 +38,7 @@ class GraphBuilder:
             if datasetName == 'GermanCredit':
                 subgroup_distances = self.pairwise_distances_and_graph_german_credit(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
             else:
-                subgroup_distances = self.pairwise_distances_and_graph(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
+                subgroup_distances = self.pairwise_distances_and_graph(subgroup, subgroup_key, epsilon, pairwise_distances, feasibility_constraints_instance)
         return pairwise_distances, self.G, self.densities
 
     def group_data_based_on_constraints(self, datasetName, data):
@@ -70,36 +70,37 @@ class GraphBuilder:
                 self.excluded_columns = ['sex'] + race_columns
                 self.feasibility_constraints.set_feature_columns_to_check(self.excluded_columns)
         return subgroups
-    
-    def pairwise_distances_and_graph(self, data, epsilon, pairwise_distances, feasibility_constraints_instance):
+
+    def pairwise_distances_and_graph(self, data, subgroup_key, epsilon, pairwise_distances, feasibility_constraints_instance):
         data_values = data.to_numpy()
+        index_list = data.index.to_numpy()
+        len_data = len(data)
         edges = []
+        densities = {}
 
-        for i in tqdm(range(len(data)), desc="Building graph for subgroup..."):
-            for j in range(i + 1, len(data)):
-                index_i = int(data.index[i])
-                index_j = int(data.index[j])
-                data_i = data_values[i]
+        print("Building graph for subgroup {} with {} nodes...".format(subgroup_key, len_data))
+        for i in range(len_data):
+            index_i = index_list[i]
+            data_i = data_values[i]
+            for j in range(i + 1, len_data):
+                index_j = index_list[j]
                 data_j = data_values[j]
-                dist = None
-                xy = False
-                yx = False
                 dist = pairwise_distances[index_i, index_j]
+                if dist > epsilon: 
+                    continue
+                    
+                mean_data = (data_i + data_j) * 0.5
+                if feasibility_constraints_instance.check_constraints(data_i, data_j):
+                    densities[(index_i, index_j)] = mean_data
+                if feasibility_constraints_instance.check_constraints(data_j, data_i):
+                    densities[(index_j, index_i)] = mean_data
+        if densities != {}:
+            self.densities.update(self.kernel.kernelKDEdata(densities, pairwise_distances))
+        
+        for (idx_i, idx_j), density in self.densities.items():
+            dist = pairwise_distances[idx_i, idx_j]
+            edges.append((idx_i, idx_j, {'distance': dist, 'wij': density * dist}))
 
-                if dist < epsilon:
-                    xy = feasibility_constraints_instance.check_constraints(data_i, data_j)
-                    yx = feasibility_constraints_instance.check_constraints(data_j, data_i)
-                    if xy or yx:
-                        density = self.kernel.kernelKDE(data_i, data_j, dist)
-                        wij = dist * density
-                        if isinstance(wij, np.ndarray) and wij.size == 1:
-                            wij = wij.item()
-                        if xy:
-                            edges.append((index_i, index_j, {'distance': dist, 'wij': wij}))
-                            self.densities[(index_i, index_j)] = density
-                        if yx:
-                            edges.append((index_j, index_i, {'distance': dist, 'wij': wij}))
-                            self.densities[(index_j, index_i)] = density
         self.G.add_edges_from(edges)
     
     def pairwise_distances_and_graph_german_credit(self, data, epsilon, pairwise_distances, feasibility_constraints_instance):
