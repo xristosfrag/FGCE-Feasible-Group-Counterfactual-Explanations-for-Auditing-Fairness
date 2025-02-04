@@ -136,19 +136,14 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	if classifier == "lr":
 		if skip_model_training and "LR_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
 			print("Loading classifier from file ...")
-			clf = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}LR_classifier_data.pk", "rb"))
+			model = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}LR_classifier_data.pk", "rb"))
 		else:
-			clf = LogisticRegression(random_state=utils.random_seed)
-			clf.fit(X_train, y_train)
-
-			print("Training accuracy:", clf.score(X_train, y_train))
-			print("Testing accuracy:", clf.score(X_test, y_test))
-
-			if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-				os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}")
-
-			pk.dump(clf, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}LR_classifier_data.pk", 'wb'))
-
+			param_grid = {
+				'C': [0.001, 0.01, 0.1, 1, 5, 10, 50, 100, 200], 
+				'solver': ['newton-cg', 'lbfgs', 'liblinear']
+			}
+			model = LogisticRegression(max_iter=10000)
+			train_model = 'lr'
 	elif classifier == "xgb":
 		if skip_model_training and "XGB_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
 			print("Loading classifier from file ...")
@@ -465,7 +460,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		except Exception as e:
 			print("Error saving results:", e)
 			print("Trying to serialize the results...")
-			results_serializable = serielize_json(results)
+			results_serializable = serialize_json(results)
 			with open(file_path, "w") as outfile:
 				json.dump(results_serializable, outfile)
     # =========================================================================================================================
