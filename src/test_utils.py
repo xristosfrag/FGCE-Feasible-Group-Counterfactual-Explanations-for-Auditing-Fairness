@@ -49,17 +49,8 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
         _, _, _, _ = load_dataset(datasetName=datasetName)
     if 'GermanCredit' in datasetName:
         datasetName = 'GermanCredit'
-    X = data[FEATURE_COLUMNS]
     TEST_SIZE = 0.3
-    data_np = data.to_numpy()
-    attr_col_mapping = {col: i for i, col in enumerate(data.columns)}
-    X = data_np[:, [attr_col_mapping[col] for col in FEATURE_COLUMNS]]
-
-    if isinstance(TARGET_COLUMNS, str):
-        y = data_np[:, attr_col_mapping[TARGET_COLUMNS]]
-    else:
-        y = data_np[:, [attr_col_mapping[col] for col in TARGET_COLUMNS]]
-
+    
     X_train, X_test, y_train, y_test = train_test_split(
         data[FEATURE_COLUMNS],
         data[TARGET_COLUMNS],
@@ -199,8 +190,9 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
 
     data = data.drop_duplicates()
     data = data.reset_index(drop=True)
-    data_df_copy = data_df_copy.drop_duplicates()
-    data_df_copy = data_df_copy.reset_index(drop=True)
+    data_np = data.to_numpy()
+    attr_col_mapping = {col: i for i, col in enumerate(data.columns)}
+    X = data_np[:, [attr_col_mapping[col] for col in FEATURE_COLUMNS]]
 
     X_train, X_test, y_train, y_test = train_test_split(
         data[FEATURE_COLUMNS],
@@ -209,7 +201,6 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
         random_state=utils.random_seed,
         shuffle=True
     )
-
     positive_points = data[model.predict(data[FEATURE_COLUMNS]) == 1]
     print(f"Positive points: {len(positive_points)}")
     negative_points = X_test[model.predict(X_test[FEATURE_COLUMNS]) == 0]
