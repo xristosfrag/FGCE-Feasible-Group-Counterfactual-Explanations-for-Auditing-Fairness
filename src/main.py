@@ -102,6 +102,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	- edge_connectivity: (float)
 		the edge connectivity
 	"""
+	data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, continuous_featues, one_hot_encode_features = load_dataset(datasetName=datasetName)
+	
 	if 'GermanCredit' in datasetName:
 		datasetName = 'GermanCredit'
 	print("Data shape:", data.shape)
@@ -115,7 +117,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		shuffle=True
 	)
 
-	print("Data size:", X_train.shape)
+	print("Data train:", X_train.shape)
 	print("Data Train columns:", data.columns)
 	print("Target columns:", TARGET_COLUMNS)
 
@@ -246,8 +248,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	elif train_model == 'dnn':
 		model.save(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}DNN_classifier_data.keras")
 
-
 	start_time = time.time()
+
 	data = data.drop_duplicates()
 	data = data.reset_index(drop=True)
 	data_np = data.to_numpy()
@@ -320,9 +322,10 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	print(f"Max possible distance considered in graph: {np.max(distances)}")
 	
 	fully_connected_nodes = len(X)
-	connected_nodes = len(graph)
-	node_connectivity = connected_nodes / fully_connected_nodes * 100
-	print(f"{connected_nodes} nodes are connected out of {fully_connected_nodes} nodes. Connectivity: {node_connectivity}%")
+	singleton_nodes = [node for node, degree in graph.degree() if degree == 0]
+	connected_nodes = graph.nodes()-singleton_nodes
+	node_connectivity = len(graph.nodes()-singleton_nodes) / len(graph.nodes()) * 100
+	print(f"{len(connected_nodes)} nodes are connected out of {fully_connected_nodes} nodes. Connectivity: {node_connectivity}%")
 
 	fully_connected_edges = (fully_connected_nodes * (fully_connected_nodes - 1)) / 2
 	connected_edges = len(graph.edges())
@@ -333,7 +336,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	execution_time = end_time - start_time
 	print("FGCE initialization: ", execution_time, " seconds")
 
-	return fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints
+	return fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value,\
+		numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints
 
 
 # =====================================================================================================================
