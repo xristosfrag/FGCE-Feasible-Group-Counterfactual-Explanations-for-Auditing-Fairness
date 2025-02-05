@@ -49,8 +49,9 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
         _, _, _, _ = load_dataset(datasetName=datasetName)
     if 'GermanCredit' in datasetName:
         datasetName = 'GermanCredit'
+    X = data[FEATURE_COLUMNS]
     TEST_SIZE = 0.3
-    
+
     X_train, X_test, y_train, y_test = train_test_split(
         data[FEATURE_COLUMNS],
         data[TARGET_COLUMNS],
@@ -175,7 +176,6 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
         print(f"Training Accuracy: {model.score(X_train, y_train):.4f}")
         print(f"Testing Accuracy: {model.score(X_test, y_test):.4f}")
 
-
     if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
         os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}")
 
@@ -193,7 +193,7 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
     data_np = data.to_numpy()
     attr_col_mapping = {col: i for i, col in enumerate(data.columns)}
     X = data_np[:, [attr_col_mapping[col] for col in FEATURE_COLUMNS]]
-
+   
     X_train, X_test, y_train, y_test = train_test_split(
         data[FEATURE_COLUMNS],
         data[TARGET_COLUMNS],
