@@ -56,7 +56,7 @@ class GraphBuilder:
 
             self.feasibility_constraints.set_feature_columns_to_check(["Sex"])
             
-        elif datasetName in ['Compas', 'Adult']:
+        elif datasetName in ['Compas', 'Adult', 'AdultLouisiana', 'AdultCalifornia']:
             sex_column = 'sex'
             race_columns = [col for col in data.columns if col.startswith('race_')]            
 
