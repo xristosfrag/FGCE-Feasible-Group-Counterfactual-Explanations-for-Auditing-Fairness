@@ -39,7 +39,9 @@ def max_possible_distance_in_dataset(datasetName):
     
     return np.sqrt(len(feature_set))
 
-def kAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_limit_for_k, lower_limit_range_for_d, steps):
+def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value=None, classifier='xgb',\
+          bandwith_approch="mean_scotts_rule", upper_limit_for_k=10, lower_limit_range_for_d=0.1, steps=10, skip_distance_calculation=True,\
+                     skip_gcfe_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, roundb=2):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
@@ -47,14 +49,24 @@ def kAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_l
     max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
     step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
 
+    fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
+                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
+                group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_bandwith_calculation,\
+                skip_graph_creation=skip_graph_creation, skip_distance_calculation=skip_distance_calculation, roundb=roundb)
+    fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
+         "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
+         "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
+              "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
+
     for cfes in range(1, upper_limit_for_k):
         auc_matrix[cfes] = {}
         results = {}
         
         for max_d in np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, step):
-            r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=0.5, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
-                                skip_model_training=True, skip_gcfe_calculation=False, skip_graph_creation=True,
-                                max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs")[0], allowed_subkeys)
+            r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+                                skip_model_training=skip_model_training, skip_gcfe_calculation=skip_gcfe_calculation, skip_graph_creation=skip_graph_creation,
+                                max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
             r.pop("Node Connectivity")
             r.pop("Edge Connectivity")
             r.pop("Total coverage")
@@ -88,25 +100,39 @@ def kAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_l
             normalized_auc = np.round(auc(x, group_coverages_array) / max_auc, 2)
             auc_matrix[cfes][key] = normalized_auc
     
-    return saturation_points, cov_for_saturation_points, auc_matrix
+    return saturation_points, cov_for_saturation_points, auc_matrix 
 
-def dAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_limit_for_k, steps):
+
+def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value='None', classifier='xgb', upper_limit_for_k=10,\
+          steps=10, skip_gcfe_calculation=True, skip_model_training=True, skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, roundb=2,
+          bandwith_approch='mean_scotts_rule'):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
     cov_for_saturation_points = {}
 
     max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
-    step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
+    # step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
+    steps = np.round(np.linspace(0.1, max_possible_distance_for_these_features, num=steps), 1)
 
-    for d in list([np.arange(0.1, max_possible_distance_for_these_features, step)])[0]:
+    fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
+                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
+                group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
+                skip_graph_creation=skip_graph_creation, skip_bandwith_calculation=skip_bandwith_calculation, roundb=roundb)
+    fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
+         "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
+         "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
+              "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
+    
+    for d in steps: 
         d = np.round(d, 2)
         auc_matrix[d] = {}
         results = {}
         for cfes in np.arange(1, upper_limit_for_k, 1):
-            r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=0.5, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
-                                    skip_model_training=True, skip_gcfe_calculation=False, skip_graph_creation=True,
-                                    max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs")[0], allowed_subkeys))
+            r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+                                    skip_model_training=skip_model_training, skip_gcfe_calculation=skip_gcfe_calculation, skip_graph_creation=skip_graph_creation,
+                                    max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
             
             r.pop("Node Connectivity")
             r.pop("Edge Connectivity")
@@ -142,14 +168,26 @@ def dAUC(datasetName, epsilon, group_identifier, group_identifier_value, upper_l
         
     return saturation_points, cov_for_saturation_points, auc_matrix
 
-def cAUC(datasetName, group_identifier, group_identifier_value, epsilon, k_values, coverages):
+def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=None, epsilon=0.5, k_values=None, coverages=None,\
+         tp=0.5, td=0.001, classifier='xgb', bandwith_approch='mean_scotts_rule', skip_model_training=True, skip_distance_calculation=True,\
+            skip_graph_creation=True, skip_bandwith_calculation=True, roundb=2):
     results = {coverage: {k: None for k in k_values} for coverage in coverages}
+
+    fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
+                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
+                group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
+                skip_graph_creation=skip_graph_creation, roundb=roundb)
+    fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
+         "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
+         "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
+              "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
     for coverage in coverages:
         for k in k_values:
             results[coverage][k] = main_coverage_constrained_GCFEs_MIP(epsilon=epsilon, tp=0.6, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=True, skip_graph_creation=True, skip_gcfe_calculation=False, skip_distance_calculation=True,
-                                cost_function = "max_vector_distance", k=k, cov=coverage)
+                                cost_function = "max_vector_distance", k=k, cov=coverage, fgce_init_dict=fgce_init_dict)
     
     saturation_points_cov, y_values_cov, aucs_cov = {}, {}, {}
     for cov in results:
