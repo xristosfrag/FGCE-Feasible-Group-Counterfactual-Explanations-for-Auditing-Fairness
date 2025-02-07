@@ -347,7 +347,13 @@ def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
         feasibility_constraints_instance.set_constraint('education', step_direction=1, exact_match=False)
         feasibility_constraints_instance.set_constraint('educational-num', step_direction=1)
         feasibility_constraints_instance.set_constraint('race', mutability=False, exact_match=True)
-        feasibility_constraints_instance.set_constraint('sex', mutability=False)        
+        feasibility_constraints_instance.set_constraint('sex', mutability=False)
+    elif (dataset_name == "AdultLouisiana"):
+        feasibility_constraints_instance.set_constraint('age', step_direction=1)
+        feasibility_constraints_instance.set_constraint('education', step_direction=1, exact_match=False)
+        feasibility_constraints_instance.set_constraint('educational-num', step_direction=1)
+        feasibility_constraints_instance.set_constraint('race', mutability=False, exact_match=True)
+        feasibility_constraints_instance.set_constraint('place-of-birth', mutability=False, exact_match=True)
     else:
         print("Unknown dataset. Initializing with no constraints.")
     return feasibility_constraints_instance
