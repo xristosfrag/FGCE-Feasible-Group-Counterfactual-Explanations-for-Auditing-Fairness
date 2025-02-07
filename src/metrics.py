@@ -1,5 +1,7 @@
 from sklearn.metrics import auc
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from main import main_cost_constrained_GCFEs, main_coverage_constrained_GCFEs_MIP
 from main import *
 
