@@ -5,6 +5,7 @@ import pickle as pk
 from sklearn import preprocessing
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, KBinsDiscretizer
 from aif360.sklearn.datasets import fetch_compas
+from sklearn.model_selection import train_test_split
 from folktables import ACSDataSource, ACSIncome
 
 def get_FGCE_Directory():
@@ -149,50 +150,23 @@ def load_heloc():
 
 def load_ACSData(datasetName):
     if datasetName == "AdultCalifornia":
-        # state = "CA"
         data_df = pd.read_csv(f"{FGCE_DIR}/data/AdultCalifornia.csv")
     elif datasetName == "AdultLouisiana":
-        # state = "LA"
         data_df = pd.read_csv(f"{FGCE_DIR}/data/AdultLouisiana.csv")
-    ca_labels = data_df["Target"]
-    # data_source = ACSDataSource(survey_year=2023, horizon='1-Year', survey='person')
-    # ca_data = data_source.get_data(states=[state], download=True)
-    # data_df, ca_labels, _ = ACSIncome.df_to_pandas(ca_data)
-    categorical_features = ['workclass','education','marital-status','sex','race', 'occupation', 'place-of-birth']
-
-    # data_df.rename(columns={
-    #         'AGEP': 'age',
-    #         'COW': 'workclass',
-    #         'SCHL': 'education',
-    #         'MAR': 'marital-status',
-    #         'OCCP': 'occupation',
-    #         'POBP': 'place-of-birth',
-    #         'WKHP': 'hours-worked-per-week',
-    #         'SEX': 'sex',
-    #         'RAC1P': 'race'
-    #     }, inplace=True)
-   
-    for column in categorical_features:
-        data_df[column] = data_df[column] - 1
+    data_df.rename(columns={
+        'Sex': 'sex',
+        'Race': 'race',
+        'Target': 'target'
+    }, inplace=True)
     
     #sampling 
     if datasetName == "AdultCalifornia":
-        _, sampled_df = train_test_split(data_df, test_size=0.57, stratify=data_df[['sex', 'race']], random_state=42)
+        _, sampled_df = train_test_split(data_df, test_size=0.20, stratify=data_df[['sex', 'race']], random_state=42)
         data_df = sampled_df.reset_index(drop=True)
- 
-    data_df["target"] = ca_labels
-    labels = data_df["target"]
-    
-    label_encoder = LabelEncoder()
-    labels_encoded = label_encoder.fit_transform(labels)
-    data_df["target"] = labels_encoded
-    
+    labels = data_df["target"]    
     TARGET_COLUMNS = data_df.columns[-1]
-    
     data = data_df.drop(columns=["target"])
- 
     data['race'] = data['race'].astype(str)
-
     data, numeric_columns, categorical_columns, one_hot_encode_features = preprocess_dataset(data, continuous_features=[])
  
     data_df_copy = data.copy()
@@ -200,9 +174,7 @@ def load_ACSData(datasetName):
     data_scaled = min_max_scaler.fit_transform(data)
     data = pd.DataFrame(data_scaled, columns=data.columns)
     FEATURE_COLUMNS = data.columns
-   
-    print(FEATURE_COLUMNS)
-    data["target"] = labels_encoded
+    data["target"] = labels
 
     return data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, [], one_hot_encode_features
 
