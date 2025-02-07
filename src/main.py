@@ -38,9 +38,9 @@ sys.path.append(FGCE_DIR)
 sep = get_path_separator()
 
 def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
-					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", group_identifier_value=None, 
-					skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, skip_bandwith_calculation=True, roundb=None):
-	data, FEATURE_COLUMNS, TARGET_COLUMNS, numeric_columns, categorical_columns, min_max_scaler, data_df_copy, continuous_featues, one_hot_encode_features = load_dataset(datasetName=datasetName)
+	group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", group_identifier_value=None, 
+	skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
+	skip_bandwith_calculation=True, roundb=None):
 	"""
 	Initialize the FGCE algorithm
 	
@@ -349,7 +349,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule",
 					k=5, max_d = 1, cost_function = "max_vector_distance", k_selection_method="greedy_accross_all_ccs", 
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, 
-					skip_bandwith_calculation=True,  skip_gcfe_calculation=True, compare_with_Face=False, roundb=None):
+					skip_bandwith_calculation=True,  skip_gcfe_calculation=True, compare_with_Face=False, roundb=None, fgce_init_dict=None):
 	"""
 	This function is used to solve the cost-constrained group counterfactuals problem using the greedy coverage algorithm
 
@@ -411,8 +411,18 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	- gfce_wij_distances: (float)
 		the average path cost of the FGCE algorithm
 	"""
-	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
+	if fgce_init_dict:
+		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = fgce_init_dict["fgce"],\
+			  fgce_init_dict["graph"], fgce_init_dict["distances"], fgce_init_dict["data"],\
+			  fgce_init_dict["data_np"], fgce_init_dict["data_df_copy"], fgce_init_dict["attr_col_mapping"],\
+			  fgce_init_dict["normalized_group_identifer_value"], fgce_init_dict["numeric_columns"], fgce_init_dict["positive_points"],\
+			  fgce_init_dict["FN"], fgce_init_dict["FN_negatives_by_group"], fgce_init_dict["node_connectivity"],\
+			  fgce_init_dict["edge_connectivity"], fgce_init_dict["feasibility_constraints"]
+	else:
+		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
@@ -446,6 +456,14 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		stats["Edge Connectivity"] = edge_connectivity
 
 		results = fgce.apply_cfes(gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, k_selection_method, cost_function, stats)
+
+		# ensure all keys are strings of the results dict to avoid such errors: "TypeError: keys must be str, int, float, bool or None, not int64"
+		results = {str(key): value for key, value in results.items()}
+
+		## do the same to the dubdicts too
+		for key in results:
+			if key in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]: continue
+			results[key] = {str(k): v for k, v in results[key].items()}
 
 		end_time = time.time()
 		execution_time = end_time - start_time
@@ -550,7 +568,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 					classifier="lr", cost_function="max_path_cost", k=2,
 					min_d=0, max_d=2, bst=1e-3, bandwith_approch="mean_scotts_rule",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-					compare_with_Face=False, skip_gcfe_calculation=False,  skip_bandwith_calculation=True, find_k0=True, roundb=None):
+					compare_with_Face=False, skip_gcfe_calculation=False,  skip_bandwith_calculation=True, find_k0=True, roundb=None, fgce_init_dict=None):
 	"""
 	This function is used to solve the coverage-constrained group counterfactuals problem using binary search
 
@@ -609,8 +627,18 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 	- gfce_wij_distances: (float)
 		the average path cost of the FGCE algorithm
 	"""
-	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
+	if fgce_init_dict:
+		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints = fgce_init_dict["fgce"],\
+			  fgce_init_dict["graph"], fgce_init_dict["distances"], fgce_init_dict["data"],\
+			  fgce_init_dict["data_np"], fgce_init_dict["data_df_copy"], fgce_init_dict["attr_col_mapping"],\
+			  fgce_init_dict["normalized_group_identifer_value"], fgce_init_dict["numeric_columns"], fgce_init_dict["positive_points"],\
+			  fgce_init_dict["FN"], fgce_init_dict["FN_negatives_by_group"], fgce_init_dict["node_connectivity"],\
+			  fgce_init_dict["edge_connectivity"], fgce_init_dict["feasibility_constraints"]
+	else:
+		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
@@ -659,7 +687,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 			stats['Optimal d'][group] = np.max(d0s)
 		
 		for group in stats['Optimal d']:
-			print(f"Group: {group} - Optimal d0: {stats['Optimal d'][group]}")
+			print(f"Group: {group} - Optimal d0: {np.round(stats['Optimal d'][group], 2)}")
 		
 		stats = fgce.apply_cfes(gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, "same_k_for_all_ccs", cost_function, stats, binary_implementation=True)
 
@@ -768,11 +796,10 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 # =====================================================================================================================
 #                 		 					coverage-constrained group counterfactuals-MIP
 # =====================================================================================================================
-
 def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", k=5, cost_function = "max_vector_distance",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-					skip_gcfe_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  roundb=None):
+					skip_gcfe_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  roundb=None, fgce_init_dict=None):
 	"""
 	This function is used to solve the coverage-constrained group counterfactuals problem using binary search
 
@@ -812,8 +839,18 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 	- results: (dict)
 		dictionary containing the final results of the FGCE-Group algorithm
 	"""
-	fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-				 skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
+	if fgce_init_dict:
+		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = fgce_init_dict["fgce"],\
+			  fgce_init_dict["graph"], fgce_init_dict["distances"], fgce_init_dict["data"],\
+			  fgce_init_dict["data_np"], fgce_init_dict["data_df_copy"], fgce_init_dict["attr_col_mapping"],\
+			  fgce_init_dict["normalized_group_identifer_value"], fgce_init_dict["numeric_columns"], fgce_init_dict["positive_points"],\
+			  fgce_init_dict["FN"], fgce_init_dict["FN_negatives_by_group"], fgce_init_dict["node_connectivity"],\
+			  fgce_init_dict["edge_connectivity"], fgce_init_dict["feasibility_constraints"]
+	else:
+		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
