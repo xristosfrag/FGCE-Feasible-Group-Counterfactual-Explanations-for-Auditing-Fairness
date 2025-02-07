@@ -149,26 +149,28 @@ def load_heloc():
 
 def load_ACSData(datasetName):
     if datasetName == "AdultCalifornia":
-        state = "CA"
+        # state = "CA"
+        data_df = pd.read_csv(f"{FGCE_DIR}/data/AdultCalifornia.csv")
     elif datasetName == "AdultLouisiana":
-        state = "LA"
-    
-    data_source = ACSDataSource(survey_year=2023, horizon='1-Year', survey='person')
-    ca_data = data_source.get_data(states=[state], download=True)
-    data_df, ca_labels, _ = ACSIncome.df_to_pandas(ca_data)
+        # state = "LA"
+        data_df = pd.read_csv(f"{FGCE_DIR}/data/AdultLouisiana.csv")
+    ca_labels = data_df["Target"]
+    # data_source = ACSDataSource(survey_year=2023, horizon='1-Year', survey='person')
+    # ca_data = data_source.get_data(states=[state], download=True)
+    # data_df, ca_labels, _ = ACSIncome.df_to_pandas(ca_data)
     categorical_features = ['workclass','education','marital-status','sex','race', 'occupation', 'place-of-birth']
 
-    data_df.rename(columns={
-            'AGEP': 'age',
-            'COW': 'workclass',
-            'SCHL': 'education',
-            'MAR': 'marital-status',
-            'OCCP': 'occupation',
-            'POBP': 'place-of-birth',
-            'WKHP': 'hours-worked-per-week',
-            'SEX': 'sex',
-            'RAC1P': 'race'
-        }, inplace=True)
+    # data_df.rename(columns={
+    #         'AGEP': 'age',
+    #         'COW': 'workclass',
+    #         'SCHL': 'education',
+    #         'MAR': 'marital-status',
+    #         'OCCP': 'occupation',
+    #         'POBP': 'place-of-birth',
+    #         'WKHP': 'hours-worked-per-week',
+    #         'SEX': 'sex',
+    #         'RAC1P': 'race'
+    #     }, inplace=True)
    
     for column in categorical_features:
         data_df[column] = data_df[column] - 1
