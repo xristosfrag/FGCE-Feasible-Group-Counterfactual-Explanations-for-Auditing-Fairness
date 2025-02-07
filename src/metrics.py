@@ -177,3 +177,83 @@ def cAUC(datasetName, group_identifier, group_identifier_value, epsilon, k_value
         aucs_cov[cov] = aucs
 
     return saturation_points_cov, y_values_cov, aucs_cov
+
+def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, auc_matrix, score='k'):
+    x_values = list(auc_matrix.keys())
+    x_values_g0 = [auc_matrix[x]['0.0'] for x in x_values]
+    x_values_g1 = [auc_matrix[x]['1.0'] for x in x_values]
+
+    min_y_value = min(min(x_values_g0), min(x_values_g1))
+    max_y_value = max(max(x_values_g0), max(x_values_g1))
+
+    sp_G0 = [saturation_points[x]['0.0'] for x in x_values]
+    sp_G1 = [saturation_points[x]['1.0'] for x in x_values]
+
+    max_cov_G0 = [np.round(cov_for_saturation_points[x]['0.0'],2) for x in x_values]
+    max_cov_G1 = [np.round(cov_for_saturation_points[x]['1.0'],2) for x in x_values]
+
+    sns.set(style="white")
+
+    plt.figure(figsize=(8, 6))
+    sns.lineplot(x=x_values, y=x_values_g0, marker='o', color='mediumseagreen', label='Group 0 kAUC')
+    sns.lineplot(x=x_values, y=x_values_g1, marker='s', color='coral', label='Group 1 kAUC')
+    plt.xlabel(score, fontsize=20)
+    plt.ylabel(f'{score.upper()}AUC Score', fontsize=20)
+    plt.ylim(min_y_value - 0.2, max_y_value + 0.1)
+    plt.xticks(x_values)
+
+    plt.legend(fontsize=16, framealpha=0.2)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.tight_layout()
+    if score == 'k':
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_scores.pdf")
+    else:
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_scores.pdf")
+    plt.show()
+
+
+
+    plt.figure(figsize=(8, 6))
+    sns.lineplot(x=x_values, y=sp_G0, color='mediumseagreen', label='Group 0', marker='o')
+    sns.lineplot(x=x_values, y=sp_G1, color='coral', label='Group 1', marker='s')
+
+    for i, (x, sp0, max_cov0, sp1, max_cov1) in enumerate(zip(x_values, sp_G0, max_cov_G0, sp_G1, max_cov_G1)):
+        if sp0 > sp1:
+            offset0 = (15, 20)
+            offset1 = (15, -20)
+        elif sp0 < sp1:
+            offset0 = (15, -20)
+            offset1 = (15, 20)
+        else:
+            if max_cov0 > max_cov1:
+                offset0 = (15, 20)
+                offset1 = (15, -20)
+            else:
+                offset0 = (15, -20)
+                offset1 = (15, 20)
+        plt.annotate(f'{max_cov0}', (x, sp0), textcoords="offset points", xytext=offset0, ha='center', color='mediumseagreen')
+        plt.annotate(f'{max_cov1}', (x, sp1), textcoords="offset points", xytext=offset1, ha='center', color='coral')
+
+    plt.xticks(x_values)
+    legend = plt.legend(title='Numbers indicate Maximum Coverage', loc='best', fontsize=16, framealpha=0.3)
+    legend.get_title().set_fontsize(16) 
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    legend.get_title().set_ha('center')
+
+    min_y_value = min(min(sp_G0), min(sp_G1))
+    max_y_value = max(max(sp_G0), max(sp_G1))
+    plt.ylabel('Saturation Point', fontsize=20)
+    plt.tight_layout()
+    if score == 'k':
+        plt.xlabel('k', fontsize=20)
+        plt.ylim(min_y_value - 0.45, max_y_value + 1)
+        plt.xlim(x_values[0] - 0.3, x_values[-1] + 1)
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf")
+    else:
+        plt.xlabel('d', fontsize=20)
+        plt.ylim(min_y_value - 0.6, max_y_value + 1.5)
+        plt.xlim(x_values[0] - 0.1, x_values[-1] + 1)
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf")
+    plt.show()
