@@ -36,9 +36,9 @@ class GraphBuilder:
 
         for subgroup_key, subgroup in subgroups.items():
             if datasetName == 'GermanCredit':
-                subgroup_distances = self.pairwise_distances_and_graph_german_credit(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
+                self.pairwise_distances_and_graph_german_credit(subgroup, epsilon, pairwise_distances, feasibility_constraints_instance)
             else:
-                subgroup_distances = self.pairwise_distances_and_graph(subgroup, subgroup_key, epsilon, pairwise_distances, feasibility_constraints_instance)
+                self.pairwise_distances_and_graph(subgroup, subgroup_key, epsilon, pairwise_distances, feasibility_constraints_instance)
         return pairwise_distances, self.G, self.densities
 
     def group_data_based_on_constraints(self, datasetName, data):
@@ -267,18 +267,18 @@ def get_false_negatives_by_group(FN, group_identifier_column, group_identifier_v
 
 def serialize_json(obj):
     if isinstance(obj, np.ndarray):
-        return obj.tolist()  # Convert NumPy arrays to lists
+        return obj.tolist() 
     elif isinstance(obj, np.int64) or isinstance(obj, np.int32):
-        return int(obj)  # Convert NumPy integers to Python int
+        return int(obj)  
     elif isinstance(obj, np.float64) or isinstance(obj, np.float32):
-        return float(obj)  # Convert NumPy floats to Python float
+        return float(obj)
     elif isinstance(obj, set):
-        return list(obj)  # Convert sets to lists
+        return list(obj)
     elif isinstance(obj, dict):
-        return {str(k): serialize_json(v) for k, v in obj.items()}  # Recursively fix dictionaries
+        return {str(k): serialize_json(v) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [serialize_json(i) for i in obj]  # Recursively fix lists
-    return obj  # Return as is if no conversion is needed
+        return [serialize_json(i) for i in obj]
+    return obj
 
 def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
     """
