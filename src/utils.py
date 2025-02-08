@@ -63,7 +63,7 @@ class GraphBuilder:
 
         data_values = data.to_numpy()
         if representation:
-            pairwise_distances = self.compute_distances_in_blocks(data_values, representation=representation)
+            pairwise_distances = self.compute_distances_in_blocks(data_values, block_size=1000, representation=representation)
         else:
             pairwise_distances = distance.cdist(data_values, data_values, 'euclidean')
 
