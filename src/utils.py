@@ -22,7 +22,39 @@ class GraphBuilder:
         self.exclude_columns = exclude_columns
         self.temp_nodes = set()
 
-    def compute_pairwise_distances_within_subgroups_and_graph(self, datasetName, data, epsilon, feasibility_constraints_instance, roundb):
+    def compute_distances_in_blocks(self, data, block_size=1000, representation=16):
+        """Computes distances in smaller blocks and rounds results to save memory.
+        
+        Understanding Memory Usage:
+        Supposing a dataset of 40,000 samples.
+        The pairwise distance matrix is 40,000 x 40,000.
+        Since storing distances in a float64 (8 bytes per value), the total memory required is:
+        40,000 x 40,000 x 8 bytes = 12.8 GB (approximately).
+        
+        Expected Memory Savings
+            Data Type	Memory per Value	Full Matrix Size
+            float64	    8 bytes	            12.8 GB
+            float32	    4 bytes	            6.4 GB
+            float16	    2 bytes	            3.2 GB
+        """
+        n = len(data)
+        if representation == 16:
+            decimals = np.float16
+        elif representation == 32:
+            decimals = np.float32
+        elif representation == 64:
+            decimals = np.float64
+        
+        results = np.zeros((n, n), dtype=decimals)
+        for i in range(0, n, block_size):
+            for j in range(i, n, block_size):
+                block = distance.cdist(data[i:i+block_size], data[j:j+block_size], 'euclidean')
+                results[i:i+block_size, j:j+block_size] = block.astype(decimals)  
+                if i != j:
+                    results[j:j+block_size, i:i+block_size] = results[i:i+block_size, j:j+block_size]  # Symmetry
+        return results
+    
+    def compute_pairwise_distances_within_subgroups_and_graph(self, datasetName, data, epsilon, feasibility_constraints_instance, representation):
         subgroups = self.group_data_based_on_constraints(datasetName, data)
         pairwise_distances = np.zeros((len(data), len(data)))
     
@@ -30,9 +62,10 @@ class GraphBuilder:
             self.G.add_node(node)
 
         data_values = data.to_numpy()
-        pairwise_distances = distance.cdist(data_values, data_values, 'euclidean')
-        if roundb:
-            pairwise_distances = np.round(pairwise_distances, roundb)
+        if representation:
+            pairwise_distances = self.compute_distances_in_blocks(data_values, representation=representation)
+        else:
+            pairwise_distances = distance.cdist(data_values, data_values, 'euclidean')
 
         for subgroup_key, subgroup in subgroups.items():
             if datasetName == 'GermanCredit':
@@ -344,16 +377,16 @@ def getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name):
         feasibility_constraints_instance.set_constraint('ExternalRiskEstimate', step_direction=-1)
     elif (dataset_name == 'Adult'):
         feasibility_constraints_instance.set_constraint('age', step_direction=1)
-        feasibility_constraints_instance.set_constraint('education', step_direction=1, exact_match=False)
+        feasibility_constraints_instance.set_constraint('education', step_direction=1)
         feasibility_constraints_instance.set_constraint('educational-num', step_direction=1)
         feasibility_constraints_instance.set_constraint('race', mutability=False, exact_match=True)
         feasibility_constraints_instance.set_constraint('sex', mutability=False)
     elif (dataset_name == "AdultLouisiana" or dataset_name == "AdultCalifornia"):
         feasibility_constraints_instance.set_constraint('age', step_direction=1)
-        feasibility_constraints_instance.set_constraint('education', step_direction=1, exact_match=False)
-        feasibility_constraints_instance.set_constraint('educational-num', step_direction=1)
+        feasibility_constraints_instance.set_constraint('sex', mutability=False)
         feasibility_constraints_instance.set_constraint('race', mutability=False, exact_match=True)
-        feasibility_constraints_instance.set_constraint('place-of-birth', mutability=False, exact_match=True)
+        feasibility_constraints_instance.set_constraint('Educational Attainment', step_direction=1)
+        feasibility_constraints_instance.set_constraint('Place of Birth', mutability=False)
     else:
         print("Unknown dataset. Initializing with no constraints.")
     return feasibility_constraints_instance

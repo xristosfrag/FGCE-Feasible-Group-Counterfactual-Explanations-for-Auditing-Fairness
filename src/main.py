@@ -40,7 +40,7 @@ sep = get_path_separator()
 def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
 	group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", group_identifier_value=None, 
 	skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-	skip_bandwith_calculation=True, roundb=None):
+	skip_bandwith_calculation=True, representation=64):
 	"""
 	Initialize the FGCE algorithm
 	
@@ -304,7 +304,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 
 		start_time = time.time()
 		dng_obj = GraphBuilder(feasibility_constraints, FEATURE_COLUMNS, X, kernel, exclude_columns=True)
-		distances, graph, densities = dng_obj.compute_pairwise_distances_within_subgroups_and_graph(datasetName, data[FEATURE_COLUMNS], epsilon, feasibility_constraints, roundb)
+		distances, graph, densities = dng_obj.compute_pairwise_distances_within_subgroups_and_graph(datasetName, data[FEATURE_COLUMNS], epsilon, feasibility_constraints, representation)
 		end_time = time.time()
 		execution_time = end_time - start_time
 		print("Distances and graph initialization: ", execution_time, " seconds")
