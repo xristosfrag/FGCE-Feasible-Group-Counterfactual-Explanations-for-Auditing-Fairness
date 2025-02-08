@@ -48,10 +48,11 @@ class GraphBuilder:
         results = np.zeros((n, n), dtype=decimals)
         for i in range(0, n, block_size):
             for j in range(i, n, block_size):
-                block = distance.cdist(data[i:i+block_size], data[j:j+block_size], 'euclidean')
-                results[i:i+block_size, j:j+block_size] = block.astype(decimals)  
+                i_end = min(i + block_size, n)
+                j_end = min(j + block_size, n)
+                results[i:i_end, j:j_end] = distance.cdist(data[i:i_end], data[j:j_end], 'euclidean').astype(decimals)
                 if i != j:
-                    results[j:j+block_size, i:i+block_size] = results[i:i+block_size, j:j+block_size]  # Symmetry
+                    results[j:j_end, i:i_end] = results[i:i_end, j:j_end].T  # Symmetric assignment
         return results
     
     def compute_pairwise_distances_within_subgroups_and_graph(self, datasetName, data, epsilon, feasibility_constraints_instance, representation):
