@@ -185,7 +185,7 @@ class Kernel:
 				bandwith = np.mean(list(optimal_bandwidths.values()))
 			elif bandwith_approch == "mean_scotts_rule":
 				if skip_bandwith_calculation:
-					bandwith = 0.05286357322100152
+					bandwith = 0.05303176387032216
 				else:
 					bandwith = self.scotts_rule_bandwidth(data).mean()
 			return bandwith	
@@ -200,7 +200,7 @@ class Kernel:
 				bandwith = np.mean(list(optimal_bandwidths.values()))
 			elif bandwith_approch == "mean_scotts_rule":
 				if skip_bandwith_calculation:
-					bandwith = 0.05286357322100152
+					bandwith = 0.04589877920756595
 				else:
 					bandwith = self.scotts_rule_bandwidth(data).mean()
 			return bandwith	
