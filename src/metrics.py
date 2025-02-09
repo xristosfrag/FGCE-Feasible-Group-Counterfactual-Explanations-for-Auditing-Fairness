@@ -114,7 +114,6 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
     cov_for_saturation_points = {}
 
     max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
-    # step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
     steps = np.round(np.linspace(0.1, max_possible_distance_for_these_features, num=steps), 1)
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
