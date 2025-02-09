@@ -5,6 +5,7 @@ import pickle as pk
 import matplotlib.pyplot as plt
 
 from FGCE import *
+from main import *
 from kernel import *
 from dataLoader import *
 
@@ -209,3 +210,86 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
     kernel.fitKernel(X)
 
     return data, data_np, X, FEATURE_COLUMNS, TARGET_COLUMNS, kernel, model
+
+def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_d):
+    plt.rcParams['axes.titlesize'] = 16
+    plt.rcParams['axes.labelsize'] = 16
+    plt.rcParams['xtick.labelsize'] = 16
+    plt.rcParams['ytick.labelsize'] = 16
+    plt.rcParams['legend.fontsize'] = 16
+    fig, ax1 = plt.subplots()
+
+    # Adjust the x values slightly to avoid overlap
+    x_values = range(1, len(face_wij)+1)
+    x_values_offset = [x + 0.1 for x in x_values]
+    x_values_offset2 = [x + 0.2 for x in x_values]
+
+    ax1.plot(x_values, face_wij, '-o', color='green', label="Face Wij Distance", alpha=0.7)
+    ax1.plot(x_values_offset, gfce_wij, '-o', color='red', label="FGCE Wij Distance", alpha=0.7)
+    ax1.set_xlabel("k")
+    ax1.set_ylabel("Avg Wij Distance")
+    ax1.set_xticks(range(1, len(face_wij)+1))
+
+    ax2 = ax1.twinx()
+
+    ax2.plot(x_values, face_dists, '-o', color='blue', label="Face Vector Distances", alpha=0.7)
+    ax2.plot(x_values_offset2, gfce_dists, '-o', color='purple', label="FGCE Vector Distances", alpha=0.7)
+    ax2.set_ylabel("Avg Vector Distance")
+
+    # Combine legends from both axes
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    handles = handles1 + handles2
+    labels = labels1 + labels2
+
+    ax1.legend().remove()
+    plt.tight_layout()
+    fig_size = (6, 4) 
+    plt.gcf().set_size_inches(fig_size)
+    plt.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/Coverage_constrained_face_gface_comparison_d_method_{d_method}_maxd_{max_d}_normalized.pdf")
+
+    # Create a separate figure for the legend
+    fig_legend = plt.figure(figsize=(1, 1))
+    ax_legend = fig_legend.add_subplot(111)
+    ax_legend.legend(handles, labels, loc='center', fontsize=16)
+    ax_legend.axis('off')
+    fig_legend.tight_layout()
+    fig_legend.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/{datasetName}_legend.pdf")
+    plt.show()
+    
+def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith_approch="mean_scotts_rule", classifier="xgb",\
+                    group_identifier='sex', upper_limit_for_k=10, group_identifier_value=None,\
+                    skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, skip_distance_calculation=True,\
+                    max_d=1000000000, representation=64):
+    face_dists = []
+    face_wij = []
+    gfce_dists = []
+    gfce_wij = []
+
+    fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+                FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
+                    datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
+                    group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_bandwith_calculation=skip_bandwith_calculation,\
+                    skip_graph_creation=skip_graph_creation, skip_distance_calculation=skip_distance_calculation, representation=representation)
+    fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
+            "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
+            "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
+                "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
+
+    for k in range(1, upper_limit_for_k, 1):
+        print(f"Running for {k}th time")
+
+        results, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances,\
+        face_wij_distances, gfce_wij_distances = main_coverage_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td,
+                                datasetName=datasetName, group_identifier=group_identifier,
+                                classifier='xgb', compare_with_Face=True, skip_distance_calculation=skip_distance_calculation,
+                                skip_model_training=skip_model_training, skip_graph_creation=skip_graph_creation, skip_fgce_calculation=False,
+                                k=k, max_d = max_d, cost_function="max_path_cost", fgce_init_dict=fgce_init_dict)
+
+        if face_vector_distances == None:
+            continue
+        face_dists.append(face_vector_distances)
+        gfce_dists.append(gfce_vector_distances)
+        face_wij.append(face_wij_distances)
+        gfce_wij.append(gfce_wij_distances)
+    return face_dists, gfce_dists, face_wij, gfce_wij
