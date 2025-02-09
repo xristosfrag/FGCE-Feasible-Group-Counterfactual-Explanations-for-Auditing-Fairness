@@ -301,16 +301,20 @@ def get_false_negatives_by_group(FN, group_identifier_column, group_identifier_v
 
 def serialize_json(obj):
     if isinstance(obj, np.ndarray):
-        return obj.tolist() 
-    elif isinstance(obj, np.int64) or isinstance(obj, np.int32):
-        return int(obj)  
-    elif isinstance(obj, np.float64) or isinstance(obj, np.float32):
+        return obj.tolist()
+    elif isinstance(obj, (np.integer, int)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, float)):
         return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
     elif isinstance(obj, set):
         return list(obj)
     elif isinstance(obj, dict):
         return {str(k): serialize_json(v) for k, v in obj.items()}
     elif isinstance(obj, list):
+        return [serialize_json(i) for i in obj]
+    elif isinstance(obj, tuple):
         return [serialize_json(i) for i in obj]
     return obj
 
