@@ -43,7 +43,7 @@ def max_possible_distance_in_dataset(datasetName):
 
 def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value=None, classifier='xgb',\
           bandwith_approch="mean_scotts_rule", upper_limit_for_k=10, lower_limit_range_for_d=0.1, steps=10, skip_distance_calculation=True,\
-                     skip_gcfe_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, roundb=2):
+                     skip_gcfe_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
@@ -55,7 +55,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
                 datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_bandwith_calculation,\
-                skip_graph_creation=skip_graph_creation, skip_distance_calculation=skip_distance_calculation, roundb=roundb)
+                skip_graph_creation=skip_graph_creation, skip_distance_calculation=skip_distance_calculation, representation=representation)
     fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
          "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
@@ -106,7 +106,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
 
 
 def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value='None', classifier='xgb', upper_limit_for_k=10,\
-          steps=10, skip_gcfe_calculation=True, skip_model_training=True, skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, roundb=2,
+          steps=10, skip_gcfe_calculation=True, skip_model_training=True, skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64,
           bandwith_approch='mean_scotts_rule'):
     auc_matrix = {}
     saturation_points = {}
@@ -121,7 +121,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
                 datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
-                skip_graph_creation=skip_graph_creation, skip_bandwith_calculation=skip_bandwith_calculation, roundb=roundb)
+                skip_graph_creation=skip_graph_creation, skip_bandwith_calculation=skip_bandwith_calculation, representation=representation)
     fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
          "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
@@ -172,14 +172,14 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
 
 def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=None, epsilon=0.5, k_values=None, coverages=None,\
          tp=0.5, td=0.001, classifier='xgb', bandwith_approch='mean_scotts_rule', skip_model_training=True, skip_distance_calculation=True,\
-            skip_graph_creation=True, skip_bandwith_calculation=True, roundb=2):
+            skip_graph_creation=True, skip_bandwith_calculation=True, representation=64):
     results = {coverage: {k: None for k in k_values} for coverage in coverages}
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
                 datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
-                skip_graph_creation=skip_graph_creation, roundb=roundb)
+                skip_graph_creation=skip_graph_creation, representation=representation)
     fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
          "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
