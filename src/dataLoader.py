@@ -154,6 +154,7 @@ def load_ACSData(datasetName):
     elif datasetName == "AdultLouisiana":
         data_df = pd.read_csv(f"{FGCE_DIR}/data/AdultLouisiana.csv")
     data_df.rename(columns={
+        'Age': 'age',
         'Sex': 'sex',
         'Race': 'race',
         'Target': 'target'

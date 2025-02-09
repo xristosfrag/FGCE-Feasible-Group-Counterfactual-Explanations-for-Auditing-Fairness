@@ -7,9 +7,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import time
 import tensorflow as tf
+import xgboost as xgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+from scikeras.wrappers import KerasClassifier
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Input
-from xgboost import XGBClassifier
 
 from utils import *
 from FGCE import *
