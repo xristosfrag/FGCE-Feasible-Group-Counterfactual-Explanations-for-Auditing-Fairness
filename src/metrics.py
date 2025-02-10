@@ -93,7 +93,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
         saturation_points[cfes] = saturation_points_g
         cov_for_saturation_points[cfes] = coverage_till_now_g
 
-        x = list(np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, step))
+        x = list(np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, d_step))
         max_auc = auc(x, [100]*len(x))
 
         auc_matrix[cfes] = {}
@@ -160,7 +160,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         saturation_points[d] = saturation_points_g
         cov_for_saturation_points[d] = coverage_till_now_g
 
-        x = list(np.arange(1, upper_limit_for_k, 1))
+        x = list(np.arange(1, upper_limit_for_k, k_step))
         max_auc = auc(x, [100]*len(x))
 
         auc_matrix[d] = {}
