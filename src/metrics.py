@@ -43,7 +43,7 @@ def max_possible_distance_in_dataset(datasetName):
 
 def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value=None, classifier='xgb',\
           bandwith_approch="mean_scotts_rule", upper_limit_for_k=10, lower_limit_range_for_d=0.1, steps=10, skip_distance_calculation=True,\
-                     skip_gcfe_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64):
+                     skip_fgce_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
@@ -68,7 +68,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
         
         for max_d in np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, step):
             r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
-                                skip_model_training=skip_model_training, skip_gcfe_calculation=skip_gcfe_calculation, skip_graph_creation=skip_graph_creation,
+                                skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                 max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
             r.pop("Node Connectivity")
             r.pop("Edge Connectivity")
@@ -107,7 +107,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
 
 
 def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value='None', classifier='xgb', upper_limit_for_k=10,\
-          steps=10, skip_gcfe_calculation=True, skip_model_training=True, skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64,
+          steps=10, skip_fgce_calculation=True, skip_model_training=True, skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64,
           bandwith_approch='mean_scotts_rule'):
     auc_matrix = {}
     saturation_points = {}
@@ -133,7 +133,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         results = {}
         for cfes in np.arange(1, upper_limit_for_k, 1):
             r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
-                                    skip_model_training=skip_model_training, skip_gcfe_calculation=skip_gcfe_calculation, skip_graph_creation=skip_graph_creation,
+                                    skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                     max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
             
             r.pop("Node Connectivity")
@@ -188,7 +188,7 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
     for coverage in coverages:
         for k in k_values:
             results[coverage][k] = main_coverage_constrained_GCFEs_MIP(epsilon=epsilon, tp=0.6, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
-                                skip_model_training=True, skip_graph_creation=True, skip_gcfe_calculation=False, skip_distance_calculation=True,
+                                skip_model_training=True, skip_graph_creation=True, skip_fgce_calculation=False, skip_distance_calculation=True,
                                 cost_function = "max_vector_distance", k=k, cov=coverage, fgce_init_dict=fgce_init_dict)
     
     saturation_points_cov, y_values_cov, aucs_cov = {}, {}, {}

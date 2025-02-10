@@ -330,17 +330,15 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	node_connectivity = len(graph.nodes()-singleton_nodes) / len(graph.nodes()) * 100
 	print(f"{len(connected_nodes)} nodes are connected out of {fully_connected_nodes} nodes. Connectivity: {node_connectivity}%")
 
-	fully_connected_edges = (fully_connected_nodes * (fully_connected_nodes - 1)) / 2
-	connected_edges = len(graph.edges())
-	edge_connectivity = connected_edges /fully_connected_edges * 100
-	print(f"{connected_edges} edges are connected out of {fully_connected_edges} edges. Connectivity: {edge_connectivity}%")
+	density = nx.density(graph)
+	print(f"Density: {density}%")
 
 	end_time = time.time()
 	execution_time = end_time - start_time
 	print("FGCE initialization: ", execution_time, " seconds")
 
 	return fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value,\
-		numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints
+		numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, density, feasibility_constraints
 
 
 # =====================================================================================================================
