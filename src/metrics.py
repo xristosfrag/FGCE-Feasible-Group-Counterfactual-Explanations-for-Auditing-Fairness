@@ -61,7 +61,8 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
-    for cfes in range(1, upper_limit_for_k):
+    k_step = np.round(upper_limit_for_k/steps)
+    for cfes in np.arange(1, upper_limit_for_k, k_step):
         auc_matrix[cfes] = {}
         results = {}
         
