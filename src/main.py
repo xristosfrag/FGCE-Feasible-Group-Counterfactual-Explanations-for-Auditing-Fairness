@@ -350,7 +350,8 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule",
 					k=5, max_d = 1, cost_function = "max_vector_distance", k_selection_method="greedy_accross_all_ccs", 
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, 
-					skip_bandwith_calculation=True,  skip_fgce_calculation=True, compare_with_Face=False, representation=64, fgce_init_dict=None):
+					skip_bandwith_calculation=True,  skip_fgce_calculation=True, compare_with_Face=False, representation=64,
+     				fgce_init_dict=None, verbose=False):
 	"""
 	This function is used to solve the cost-constrained group counterfactuals problem using the greedy coverage algorithm
 
@@ -449,14 +450,15 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		subgroups = utils.get_subgraphs_by_group(graph, data_np, data, attr_col_mapping, group_identifier, normalized_group_identifer_value, numeric_columns)
 		print(f"\n{len(subgroups)} subgroups created based on group identifier: {group_identifier}")		
 		
-		print(f"Computing group cfes...")
+		if verbose:
+			print(f"Computing group cfes...")
 		gcfes, not_possible_to_cover_fns_group = fgce.compute_gcfes_greedy(subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method)
 
 		stats = {}
 		stats["Node Connectivity"] = node_connectivity
 		stats["Edge Connectivity"] = edge_connectivity
 
-		results = fgce.apply_cfes(gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, k_selection_method, cost_function, stats)
+		results = fgce.apply_cfes(gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, k_selection_method, cost_function, stats, verbose=verbose)
 
 		# ensure all keys are strings of the results dict to avoid such errors: "TypeError: keys must be str, int, float, bool or None, not int64"
 		results = {str(key): value for key, value in results.items()}
@@ -468,7 +470,8 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 
 		end_time = time.time()
 		execution_time = end_time - start_time
-		print("Group Cfes - Time:", execution_time, "seconds")
+		if verbose:
+			print("Group Cfes - Time:", execution_time, "seconds")
 
 		if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs"):
 			os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs")
@@ -477,8 +480,9 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 			with open(file_path, "w") as outfile:
 				json.dump(results, outfile)
 		except Exception as e:
-			print("Error saving results:", e)
-			print("Trying to serialize the results...")
+			if verbose:
+				print("Error saving results:", e)
+				print("Trying to serialize the results...")
 			results_serializable = serialize_json(results)
 			with open(file_path, "w") as outfile:
 				json.dump(results_serializable, outfile)

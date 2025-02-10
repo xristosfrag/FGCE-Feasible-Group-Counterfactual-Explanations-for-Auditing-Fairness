@@ -303,7 +303,7 @@ class FGCE:
 
 		return visited
 
-	def compute_gcfes_greedy(self, subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method="greedy_accross_all_ccs"):
+	def compute_gcfes_greedy(self, subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method="greedy_accross_all_ccs", verbose=False):
 		"""
 		Computes the group CFES for each subgroup.
 
@@ -345,7 +345,8 @@ class FGCE:
 			gcfes['stats'][subgroup_index] = {}
 			gcfes['stats'][subgroup_index]['nodes'] = len(subgroup)
 			gcfes['stats'][subgroup_index]['connected_components'] = len(connected_components)
-			print(f"Subgroup: {subgroup_index} - Nodes: {len(subgroup)}\nConnected components: {len(connected_components)}")
+			if verbose:
+				print(f"Subgroup: {subgroup_index} - Nodes: {len(subgroup)}\nConnected components: {len(connected_components)}")
 
 			ccs_cfes = {}			
 			ccs_not_applicable = 0
@@ -367,7 +368,8 @@ class FGCE:
 				gcfes['stats'][subgroup_index][ccs_cfes_index]['nodes'] = len(connected_component)
 				gcfes['stats'][subgroup_index][ccs_cfes_index]['positives'] = len(positives_in_subgraph)
 				gcfes['stats'][subgroup_index][ccs_cfes_index]['false_negatives'] = len(false_negatives_in_subgraph)
-				print(f"    Nodes in connected component: {len(connected_component)}\n    Positive points: {len(positives_in_subgraph)}\n    False Negative points: {len(false_negatives_in_subgraph)}")
+				if verbose:
+					print(f"    Nodes in connected component: {len(connected_component)}\n    Positive points: {len(positives_in_subgraph)}\n    False Negative points: {len(false_negatives_in_subgraph)}")
 
 				for false_negative_point in tqdm(false_negatives_in_subgraph, desc='Finding candidate cfes for FNs'):
 					not_possible_to_cover_fns_group[subgroup_index][false_negative_point] = False # Initialize the FN point as not possible to cover
@@ -429,27 +431,32 @@ class FGCE:
 				ccs_cfes_index += 1
 
 			if ccs_not_applicable > 0:
-				print(f"Total not applicable connected components for group {subgroup_index}: {ccs_not_applicable}")
-				print(f"Total applicable connected components for group: {len(connected_components) - ccs_not_applicable}")
+				if verbose:
+					print(f"Total not applicable connected components for group {subgroup_index}: {ccs_not_applicable}")
+					print(f"Total applicable connected components for group: {len(connected_components) - ccs_not_applicable}")
 			gcfes['stats'][subgroup_index]['not_applicable_ccs'] = ccs_not_applicable
 
 			if k_selection_method == "greedy_accross_all_ccs":
 				ccs_cfes = self.select_cfes(ccs_cfes, k)
-				print(f"Number of CFEs needed: {len(ccs_cfes)}")
+				if verbose:
+					print(f"Number of CFEs needed: {len(ccs_cfes)}")
 
 			gcfes[subgroup_index] = {}
 			gcfes[subgroup_index] = ccs_cfes
 
 		if total_ccs_not_applicable > 0:
-			print(f"Total not applicable connected components: {total_ccs_not_applicable}")
-			print(f"Total applicable connected components: {total_ccs_applicable}")
+			if verbose:
+				print(f"Total not applicable connected components: {total_ccs_not_applicable}")
+				print(f"Total applicable connected components: {total_ccs_applicable}")
 
 		for subgroup_index in gcfes:
 			if k_selection_method == "greeedy_accross_all_ccs":
-				print(f"Number of CFEs needed: {len(gcfes[subgroup_index])}")
+				if verbose:
+					print(f"Number of CFEs needed: {len(gcfes[subgroup_index])}")
 			elif k_selection_method == "same_k_for_all_ccs":
 				cfes_needed = sum([len(gcfes[subgroup_index][cc]) for cc in gcfes[subgroup_index]])
-				print(f"Number of CFEs needed: {cfes_needed}")
+				if verbose:
+					print(f"Number of CFEs needed: {cfes_needed}")
 
 		return gcfes, not_possible_to_cover_fns_group
 	
@@ -724,8 +731,9 @@ class FGCE:
 			results[group]['Median distance'] = median_distance
 
 			print(f"\n\nGroup {group} - Coverage: {coverage}%")
-			print(f"Group {group} - Avg. distance: {avg_distance}")
-			print(f"Group {group} - Median distance: {median_distance}")
+			if verbose:
+       			print(f"Group {group} - Avg. distance: {avg_distance}")
+				print(f"Group {group} - Median distance: {median_distance}")
 
 			if cost_function != "max_vector_distance":
 				path_cost_values = list(path_cost_for_group.values())
@@ -734,8 +742,9 @@ class FGCE:
 				results[group]['Avg. path cost'] = avg_path_cost if not np.isnan(avg_path_cost) else None
 				results[group]['Median path cost'] = median_path_cost if not np.isnan(median_path_cost) else None
 
-				print(f"Group {group} - Avg. path cost: {avg_path_cost}")
-				print(f"Group {group} - Median path cost: {median_path_cost}")
+				if verbose:
+					print(f"Group {group} - Avg. path cost: {avg_path_cost}")
+					print(f"Group {group} - Median path cost: {median_path_cost}")
 
 		final_results = {}
 		if stats is not None:
