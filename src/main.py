@@ -352,7 +352,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule",
 					k=5, max_d = 1, cost_function = "max_vector_distance", k_selection_method="greedy_accross_all_ccs", 
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, 
-					skip_bandwith_calculation=True,  skip_gcfe_calculation=True, compare_with_Face=False, roundb=None, fgce_init_dict=None):
+					skip_bandwith_calculation=True,  skip_gcfe_calculation=True, compare_with_Face=False, representation=64, fgce_init_dict=None):
 	"""
 	This function is used to solve the cost-constrained group counterfactuals problem using the greedy coverage algorithm
 
@@ -425,7 +425,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
@@ -571,7 +571,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 					classifier="lr", cost_function="max_path_cost", k=2,
 					min_d=0, max_d=2, bst=1e-3, bandwith_approch="mean_scotts_rule",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-					compare_with_Face=False, skip_gcfe_calculation=False,  skip_bandwith_calculation=True, find_k0=True, roundb=None, fgce_init_dict=None):
+					compare_with_Face=False, skip_gcfe_calculation=False,  skip_bandwith_calculation=True, find_k0=True, representation=64, fgce_init_dict=None):
 	"""
 	This function is used to solve the coverage-constrained group counterfactuals problem using binary search
 
@@ -641,7 +641,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
@@ -802,7 +802,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", k=5, cost_function = "max_vector_distance",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-					skip_gcfe_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  roundb=None, fgce_init_dict=None):
+					skip_gcfe_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  representation=64, fgce_init_dict=None):
 	"""
 	This function is used to solve the coverage-constrained group counterfactuals problem using binary search
 
@@ -853,7 +853,7 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, roundb)
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
