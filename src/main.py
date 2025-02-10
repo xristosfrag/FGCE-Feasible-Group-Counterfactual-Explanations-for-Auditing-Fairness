@@ -330,7 +330,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	node_connectivity = len(graph.nodes()-singleton_nodes) / len(graph.nodes()) * 100
 	print(f"{len(connected_nodes)} nodes are connected out of {fully_connected_nodes} nodes. Connectivity: {node_connectivity}%")
 
-	density = nx.density(graph)
+	density = nx.density(graph) * 100
 	print(f"Density: {density}%")
 
 	end_time = time.time()
@@ -452,7 +452,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		
 		if verbose:
 			print(f"Computing group cfes...")
-		gcfes, not_possible_to_cover_fns_group = fgce.compute_gcfes_greedy(subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method)
+		gcfes, not_possible_to_cover_fns_group = fgce.compute_gcfes_greedy(subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method, verbose=verbose)
 
 		stats = {}
 		stats["Node Connectivity"] = node_connectivity
@@ -535,11 +535,12 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 							face_max_wij_distance = fwd
 						face_wij_distances += fwd
 					
-					print("	FGCE Info:")
-					print(f"		CFE: {results[key][fn_point]['CFE_name']}")
-					print(f"		Shortest Path cost: {results[key][fn_point]['Shortest_path_cost']}")
-					print(f"		Shortest Path cost dist: {results[key][fn_point]['Shortest_paths_distance_cost']}")
-					print(f"		Vector Distance: {results[key][fn_point]['Vector_distance']}")
+					if verbose:
+						print("	FGCE Info:")
+						print(f"		CFE: {results[key][fn_point]['CFE_name']}")
+						print(f"		Shortest Path cost: {results[key][fn_point]['Shortest_path_cost']}")
+						print(f"		Shortest Path cost dist: {results[key][fn_point]['Shortest_paths_distance_cost']}")
+						print(f"		Vector Distance: {results[key][fn_point]['Vector_distance']}")
 					gfvd = results[key][fn_point]['Vector_distance']
 					gfce_vector_distances += gfvd
 

@@ -49,7 +49,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
     cov_for_saturation_points = {}
 
     max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
-    step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
+    d_step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
@@ -61,12 +61,12 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
-    k_step = np.round(upper_limit_for_k/steps)
+    k_step = int(np.round(upper_limit_for_k/steps))
     for cfes in np.arange(1, upper_limit_for_k, k_step):
         auc_matrix[cfes] = {}
         results = {}
         
-        for max_d in np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, step):
+        for max_d in np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, d_step):
             r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                 max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
@@ -115,7 +115,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
     cov_for_saturation_points = {}
 
     max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
-    steps = np.round(np.linspace(0.1, max_possible_distance_for_these_features, num=steps), 1)
+    d_steps = np.round(np.linspace(0.1, max_possible_distance_for_these_features, num=steps), 1)
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
@@ -128,7 +128,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
     
     k_step = np.round(upper_limit_for_k/steps)
-    for d in steps: 
+    for d in d_steps: 
         d = np.round(d, 2)
         auc_matrix[d] = {}
         results = {}

@@ -460,7 +460,7 @@ class FGCE:
 
 		return gcfes, not_possible_to_cover_fns_group
 	
-	def apply_cfes(self, gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, k_selection_method="greedy_accross_all_ccs", cost_function="max_vector_distance", stats=None, binary_implementation=False):
+	def apply_cfes(self, gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, k_selection_method="greedy_accross_all_ccs", cost_function="max_vector_distance", stats=None, binary_implementation=False, verbose=False):
 		"""
 		Applies the group CFES to the data and generates the results.
 
@@ -732,7 +732,7 @@ class FGCE:
 
 			print(f"\n\nGroup {group} - Coverage: {coverage}%")
 			if verbose:
-       			print(f"Group {group} - Avg. distance: {avg_distance}")
+				print(f"Group {group} - Avg. distance: {avg_distance}")
 				print(f"Group {group} - Median distance: {median_distance}")
 
 			if cost_function != "max_vector_distance":
