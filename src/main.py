@@ -352,7 +352,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule",
 					k=5, max_d = 1, cost_function = "max_vector_distance", k_selection_method="greedy_accross_all_ccs", 
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, 
-					skip_bandwith_calculation=True,  skip_gcfe_calculation=True, compare_with_Face=False, representation=64, fgce_init_dict=None):
+					skip_bandwith_calculation=True,  skip_fgce_calculation=True, compare_with_Face=False, representation=64, fgce_init_dict=None):
 	"""
 	This function is used to solve the cost-constrained group counterfactuals problem using the greedy coverage algorithm
 
@@ -386,7 +386,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		if it will skip the graph creation and load it if it exists or not
 	- skip_bandwith_calculation: (boolean)
 		if it will skip the bandwith calculation and load it if it exists or not
-	- skip_gcfe_calculation: (boolean)
+	- skip_fgce_calculation: (boolean)
 		if it will skip the group cfes calculation and load it if it exists or not
 	- compare_with_Face: (boolean)
 		if it will compare the results with the Face algorithm or not
@@ -443,7 +443,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 
 	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_d_{max_d_store}_kmethod_{k_selection_method}.json"
 	
-	if skip_gcfe_calculation and os.path.exists(file_path):
+	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
 		return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 	else:
@@ -571,7 +571,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 					classifier="lr", cost_function="max_path_cost", k=2,
 					min_d=0, max_d=2, bst=1e-3, bandwith_approch="mean_scotts_rule",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-					compare_with_Face=False, skip_gcfe_calculation=False,  skip_bandwith_calculation=True, find_k0=True, representation=64, fgce_init_dict=None):
+					compare_with_Face=False, skip_fgce_calculation=False,  skip_bandwith_calculation=True, find_k0=True, representation=64, fgce_init_dict=None):
 	"""
 	This function is used to solve the coverage-constrained group counterfactuals problem using binary search
 
@@ -601,7 +601,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 		if it will skip the graph creation and load it if it exists or not
 	- skip_bandwith_calculation: (boolean)
 		if it will skip the bandwith calculation and load it if it exists or not
-	- skip_gcfe_calculation: (boolean)
+	- skip_fgce_calculation: (boolean)
 		if it will skip the group cfes calculation and load it if it exists or not
 	- compare_with_Face: (boolean)
 		if it will compare the results with the Face algorithm or not
@@ -665,7 +665,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 
 	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_max_d_store_{max_d_store}_min_d_store_{min_d_store}_bst_{bst_store}.json"
 	
-	if skip_gcfe_calculation and os.path.exists(file_path):
+	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
 		return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 
@@ -802,7 +802,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", k=5, cost_function = "max_vector_distance",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-					skip_gcfe_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  representation=64, fgce_init_dict=None):
+					skip_fgce_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  representation=64, fgce_init_dict=None):
 	"""
 	This function is used to solve the coverage-constrained group counterfactuals problem using binary search
 
@@ -831,7 +831,7 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 		if it will skip the graph creation and load it if it exists or not
 	- skip_bandwith_calculation: (boolean)
 		if it will skip the bandwith calculation and load it if it exists or not
-	- skip_gcfe_calculation: (boolean)
+	- skip_fgce_calculation: (boolean)
 		if it will skip the group cfes calculation and load it if it exists or not
 	- cov_constr_approach: (str)
 		the approach to use for the coverage constraint
@@ -861,7 +861,7 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}{cov_constr_approach}{sep}stats{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cov_{cov}_cost_function_{cost_function}.json"
 	gcfes_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}{cov_constr_approach}{sep}gcfes{sep}gcfes_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cov_{cov}_cost_function_{cost_function}.json"
 	
-	if skip_gcfe_calculation and os.path.exists(file_path):
+	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
 		return results
 	else:
