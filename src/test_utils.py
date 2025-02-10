@@ -258,7 +258,7 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
     plt.show()
     
 def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith_approch="mean_scotts_rule", classifier="xgb",\
-                    group_identifier='sex', upper_limit_for_k=10, group_identifier_value=None,\
+                    group_identifier='sex', upper_limit_for_k=10, steps=10, group_identifier_value=None,\
                     skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, skip_distance_calculation=True,\
                     max_d=1000000000, representation=64):
     face_dists = []
@@ -276,7 +276,8 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
             "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
                 "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
-    for k in range(1, upper_limit_for_k, 1):
+    k_step = int(np.round(upper_limit_for_k/steps))
+    for k, cfes in enumerate(np.arange(1, upper_limit_for_k, k_step)):
         print(f"Running for {k}th time")
 
         results, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances,\
