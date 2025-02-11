@@ -40,10 +40,10 @@ FGCE_DIR = get_FGCE_Directory()
 sys.path.append(FGCE_DIR)
 sep = get_path_separator()
 
-def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
+def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", group_identifier_value=None, 
 	skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
-	skip_bandwith_calculation=True, representation=64):
+	skip_bandwith_calculation=True, representation=64, verbose=True):
 	"""
 	Initialize the FGCE algorithm
 	
@@ -109,7 +109,6 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	
 	if 'GermanCredit' in datasetName:
 		datasetName = 'GermanCredit'
-	print("Data shape:", data.shape)
 	TEST_SIZE = 0.3
 
 	X_train, X_test, y_train, y_test = train_test_split(
@@ -119,10 +118,10 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		random_state=utils.random_seed,
 		shuffle=True
 	)
-
-	print("Data train:", X_train.shape)
-	print("Data Train columns:", data.columns)
-	print("Target columns:", TARGET_COLUMNS)
+	if verbose:
+		print("Data shape:", data.shape)
+		print("Feature columns:", data.columns)
+		print("Target columns:", TARGET_COLUMNS)
 
 	if not os.path.exists(f"{FGCE_DIR}{sep}tmp"):
 		os.makedirs(os.path.join(FGCE_DIR, 'tmp'))
@@ -135,7 +134,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	model = None
 	if classifier == "lr":
 		if skip_model_training and "LR_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-			print("Loading classifier from file ...")
+			if verbose:
+				print("Loading classifier from file ...")
 			model = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}LR_classifier_data.pk", "rb"))
 		else:
 			param_grid = {
@@ -146,7 +146,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 			train_model = 'lr'
 	elif classifier == "xgb":
 		if skip_model_training and "XGB_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-			print("Loading classifier from file ...")
+			if verbose:
+				print("Loading classifier from file ...")
 			model = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}XGB_classifier_data.pk", "rb"))
 		else:
 			param_grid = {
@@ -167,7 +168,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 			train_model = 'xgb'
 	elif classifier == "rf":
 		if skip_model_training and "RF_classifier_data.pk" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-			print("Loading classifier from file ...")
+			if verbose:
+				print("Loading classifier from file ...")
 			model = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}RF_classifier_data.pk", "rb"))
 		else:
 			param_grid = {
@@ -181,7 +183,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 			train_model = 'rf'
 	elif classifier == "dnn":
 		if skip_model_training and "DNN_classifier_data.h5" in os.listdir(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
-			print("Loading classifier from file ...")
+			if verbose:
+				print("Loading classifier from file ...")
 			model = tf.keras.models.load_model(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}DNN_classifier_data.keras")
 		else:
 			def create_dnn_model(optimizer='adam', dropout_rate=0.5, hidden_units=32):
@@ -227,18 +230,19 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 			verbose=0,
 			random_state=42
 		)
-
-		print(f"Starting {classifier} hyperparameter search...")
+		if verbose:
+			print(f"Starting {classifier} hyperparameter search...")
 		random_search.fit(X_train, y_train)
 
 		# Retrieve best model (already trained during hyperparameter search)
 		model = random_search.best_estimator_
 
 		# Print results
-		print(f"\nBest {classifier} Hyperparameters: {random_search.best_params_}")
-		print(f"Best cross-validated accuracy: {random_search.best_score_:.4f}")
-		print(f"Training Accuracy: {model.score(X_train, y_train):.4f}")
-		print(f"Testing Accuracy: {model.score(X_test, y_test):.4f}")
+		if verbose:
+			print(f"\nBest {classifier} Hyperparameters: {random_search.best_params_}")
+			print(f"Best cross-validated accuracy: {random_search.best_score_:.4f}")
+			print(f"Training Accuracy: {model.score(X_train, y_train):.4f}")
+			print(f"Testing Accuracy: {model.score(X_test, y_test):.4f}")
 
 	if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}"):
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}")
@@ -267,20 +271,22 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		shuffle=True
 	)
 	positive_points = data[model.predict(data[FEATURE_COLUMNS]) == 1]
-	print(f"Positive points: {len(positive_points)}")
 	negative_points = X_test[model.predict(X_test[FEATURE_COLUMNS]) == 0]
 	common_indices = negative_points.index.intersection(y_test[y_test == 1].index)
 	FN = negative_points.loc[common_indices]
-	print(f"FN: {len(FN)}")
+	if verbose:
+		print(f"Positive points: {len(positive_points)}")
+		print(f"FN: {len(FN)}")
 	positive_points = {index: row.to_numpy() for index, row in positive_points.iterrows()}
 	negative_points = {index: row.to_numpy() for index, row in negative_points.iterrows()}
 	FN = {index: row.to_numpy() for index, row in FN.iterrows()}
 
 	normalized_group_identifer_value = None
 	if group_identifier in numeric_columns and group_identifier_value is not None:
-		print(f"Group identifier value: {group_identifier_value}")
 		normalized_group_identifer_value = utils.get_normalized_group_identifier_value(group_identifier, group_identifier_value, min_max_scaler, data_df_copy)
-		print(f"Normalized group identifier value: {normalized_group_identifer_value}")
+		if verbose:
+			print(f"Group identifier value: {group_identifier_value}")
+			print(f"Normalized group identifier value: {normalized_group_identifer_value}")
 	elif group_identifier in numeric_columns and group_identifier_value is None:
 		raise ValueError(f"The group_identifier column {group_identifier} does not contain numerical values")
 
@@ -289,15 +295,16 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	if skip_distance_calculation and skip_graph_creation and\
 				os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}Graph_{epsilon}.pkl")\
 					and os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Distances.pkl") and os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Densities{sep}Densities_{epsilon}.pkl"):
-		print("Loading graph from file ...")
+		if verbose:
+			print("Loading graph from file ...")
 		graph = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}Graph_{epsilon}.pkl", "rb"))
 		kernel = Kernel(datasetName, X, skip_bandwith_calculation=skip_bandwith_calculation, bandwith_approch=bandwith_approch)
 		kernel.fitKernel(X)
 		fgce = FGCE(data_np, kernel, FEATURE_COLUMNS, TARGET_COLUMNS, epsilon, model)
 		feasibility_constraints = utils.getFeasibilityConstraints(FEATURE_COLUMNS, dataset_name=datasetName)
 		fgce.set_graph(graph)
-
-		print("Loading distances from file ...")
+		if verbose:
+			print("Loading distances from file ...")
 		distances = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Distances.pkl", "rb"))
 	else:
 		kernel = Kernel(datasetName, X, skip_bandwith_calculation=skip_bandwith_calculation, bandwith_approch=bandwith_approch)
@@ -310,7 +317,8 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		distances, graph, densities = dng_obj.compute_pairwise_distances_within_subgroups_and_graph(datasetName, data[FEATURE_COLUMNS], epsilon, feasibility_constraints, representation)
 		end_time = time.time()
 		execution_time = end_time - start_time
-		print("Distances and graph initialization: ", execution_time, " seconds")
+		if verbose:		
+			print("Distances and graph initialization: ", execution_time, " seconds")
 
 		if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}"):
 			os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}")
@@ -320,22 +328,21 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		pk.dump(graph, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Graphs{sep}Graph_{epsilon}.pkl", "wb"))
 		pk.dump(distances, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Distances.pkl", "wb"))
 		pk.dump(densities, open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Densities{sep}Densities_{epsilon}.pkl", "wb"))
-
-	print(f"Max distance in the dataset: {np.sqrt(len(FEATURE_COLUMNS))}")
-	print(f"Max possible distance considered in graph: {np.max(distances)}")
+		if verbose:
+			print(f"Max distance in the dataset: {np.sqrt(len(FEATURE_COLUMNS))}")
+			print(f"Max possible distance considered in graph: {np.max(distances)}")
 	
 	fully_connected_nodes = len(X)
 	singleton_nodes = [node for node, degree in graph.degree() if degree == 0]
 	connected_nodes = graph.nodes()-singleton_nodes
 	node_connectivity = len(graph.nodes()-singleton_nodes) / len(graph.nodes()) * 100
-	print(f"{len(connected_nodes)} nodes are connected out of {fully_connected_nodes} nodes. Connectivity: {node_connectivity}%")
-
 	density = nx.density(graph) * 100
-	print(f"Density: {density}%")
-
 	end_time = time.time()
 	execution_time = end_time - start_time
-	print("FGCE initialization: ", execution_time, " seconds")
+	if verbose:
+		print(f"{len(connected_nodes)} nodes are connected out of {fully_connected_nodes} nodes. Connectivity: {node_connectivity}%")
+		print(f"Density: {density}%")
+		print("FGCE initialization: ", execution_time, " seconds")
 
 	return fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value,\
 		numeric_columns, positive_points, FN, FN_negatives_by_group, node_connectivity, density, feasibility_constraints
