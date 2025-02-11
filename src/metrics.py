@@ -221,17 +221,18 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
 
 def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, auc_matrix, score='k'):
     x_values = list(auc_matrix.keys())
-    x_values_g0 = [auc_matrix[x]['0.0'] for x in x_values]
-    x_values_g1 = [auc_matrix[x]['1.0'] for x in x_values]
+    group_keys = list(auc_matrix[x_values[0]].keys())
+    x_values_g0 = [auc_matrix[x][group_keys[0]] for x in x_values]
+    x_values_g1 = [auc_matrix[x][group_keys[1]] for x in x_values]
 
     min_y_value = min(min(x_values_g0), min(x_values_g1))
     max_y_value = max(max(x_values_g0), max(x_values_g1))
 
-    sp_G0 = [saturation_points[x]['0.0'] for x in x_values]
-    sp_G1 = [saturation_points[x]['1.0'] for x in x_values]
+    sp_G0 = [saturation_points[x][group_keys[0]] for x in x_values]
+    sp_G1 = [saturation_points[x][group_keys[1]] for x in x_values]
 
-    max_cov_G0 = [np.round(cov_for_saturation_points[x]['0.0'],2) for x in x_values]
-    max_cov_G1 = [np.round(cov_for_saturation_points[x]['1.0'],2) for x in x_values]
+    max_cov_G0 = [np.round(cov_for_saturation_points[x][group_keys[0]],2) for x in x_values]
+    max_cov_G1 = [np.round(cov_for_saturation_points[x][group_keys[1]],2) for x in x_values]
 
     sns.set(style="white")
 
@@ -242,7 +243,6 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     plt.ylabel(f'{score.upper()}AUC Score', fontsize=20)
     plt.ylim(min_y_value - 0.2, max_y_value + 0.1)
     plt.xticks(x_values)
-
     plt.legend(fontsize=16, framealpha=0.2)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
@@ -259,6 +259,15 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     sns.lineplot(x=x_values, y=sp_G0, color='mediumseagreen', label='Group 0', marker='o')
     sns.lineplot(x=x_values, y=sp_G1, color='coral', label='Group 1', marker='s')
 
+    # Set initial x-axis limit
+    plt.xlim(min(x_values) - 0.1, max(x_values) + (1 if score == 'k' else 0.5))
+    plt.ylim(min(min(sp_G0), min(sp_G1)) - (0.45 if score == 'k' else 2),
+            max(max(sp_G0), max(sp_G1)) + (1 if score == 'k' else 2.6))
+
+    x_min, x_max = 0, 100  
+    extend_x = 0 
+    extend_y = 0  
+
     for i, (x, sp0, max_cov0, sp1, max_cov1) in enumerate(zip(x_values, sp_G0, max_cov_G0, sp_G1, max_cov_G1)):
         if sp0 > sp1:
             offset0 = (15, 20)
@@ -273,8 +282,30 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
             else:
                 offset0 = (15, -20)
                 offset1 = (15, 20)
+
+        annotation_x_max_0 = i* offset0[0]   
+        annotation_y_max_0 = i* offset0[1] 
+        if x > 10 and score == 'k':
+            if annotation_x_max_0 > x_max:
+                extend_x = extend_x+1 
+                extend_x = extend_x+1 
+        elif score == 'd':
+            if annotation_x_max_0 > x_max:
+                extend_x = extend_x+1 
+                extend_x = extend_x+1 
+        if annotation_y_max_0 > max(sp_G0):
+            extend_y = extend_y+1 
+
         plt.annotate(f'{max_cov0}', (x, sp0), textcoords="offset points", xytext=offset0, ha='center', color='mediumseagreen')
         plt.annotate(f'{max_cov1}', (x, sp1), textcoords="offset points", xytext=offset1, ha='center', color='coral')
+
+    if score == 'k':
+        if extend_x > 0:
+            plt.xlim(x_min, max(x_values) + extend_x)
+    if score == 'd':
+        if extend_y > 0:
+            plt.ylim(min(min(sp_G0), min(sp_G1)) - extend_y,
+                max(max(sp_G0), max(sp_G1)) + extend_y) 
 
     plt.xticks(x_values)
     legend = plt.legend(title='Numbers indicate Maximum Coverage', loc='best', fontsize=16, framealpha=0.3)
@@ -283,18 +314,14 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     plt.yticks(fontsize=20)
     legend.get_title().set_ha('center')
 
-    min_y_value = min(min(sp_G0), min(sp_G1))
-    max_y_value = max(max(sp_G0), max(sp_G1))
     plt.ylabel('Saturation Point', fontsize=20)
     plt.tight_layout()
+
     if score == 'k':
         plt.xlabel('k', fontsize=20)
-        plt.ylim(min_y_value - 0.45, max_y_value + 1)
-        plt.xlim(x_values[0] - 0.3, x_values[-1] + 1)
         plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf")
     else:
         plt.xlabel('d', fontsize=20)
-        plt.ylim(min_y_value - 0.6, max_y_value + 1.5)
-        plt.xlim(x_values[0] - 0.1, x_values[-1] + 1)
         plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf")
+
     plt.show()
