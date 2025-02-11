@@ -294,3 +294,28 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
         face_wij.append(face_wij_distances)
         gfce_wij.append(gfce_wij_distances)
     return face_dists, gfce_dists, face_wij, gfce_wij
+
+def get_graph_stats(epsilon=0.4,\
+        datasetName='Adult', group_identifier='sex', group_identifier_value=None, bandwith_approch="mean_scotts_rule", classifier='xgb',\
+		skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, skip_bandwith_calculation=True, verbose=False):
+  
+  fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
+    FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints = initialize_FGCE(epsilon=epsilon,\
+    datasetName=datasetName, group_identifier=group_identifier, bandwith_approch=bandwith_approch, classifier=classifier,\
+    group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
+    skip_graph_creation=skip_graph_creation, skip_bandwith_calculation=skip_bandwith_calculation, verbose=verbose)
+      
+  subgroups = utils.get_subgraphs_by_group(graph, data_np, data, attr_col_mapping, group_identifier, normalized_group_identifer_value, numeric_columns)
+  weakly_connected_components = {}
+  subgroup_nodes = {}
+  stats = {}
+  for group, subgraph in subgroups.items():
+    weakly_connected_components[group] = list(nx.weakly_connected_components(subgraph))
+    subgroup_nodes[group] = list(subgraph.nodes())
+
+    strongly_connected_components = list(nx.strongly_connected_components(subgraph))
+    
+    density = nx.density(subgraph) 
+    stats[group] = {'num_nodes': len(subgroup_nodes[group]), 'num_strongly_connected_components': len(strongly_connected_components),
+            'num_weakly_connected_components': len(weakly_connected_components[group]), 'density': f'{density*100:.2f}'}
+  return stats
