@@ -285,7 +285,7 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
                                 datasetName=datasetName, group_identifier=group_identifier,
                                 classifier='xgb', compare_with_Face=True, skip_distance_calculation=skip_distance_calculation,
                                 skip_model_training=skip_model_training, skip_graph_creation=skip_graph_creation, skip_fgce_calculation=False,
-                                k=k, max_d = max_d, cost_function="max_path_cost", fgce_init_dict=fgce_init_dict, bst=bst)
+                                k=cfes, max_d = max_d, cost_function="max_path_cost", fgce_init_dict=fgce_init_dict, bst=bst)
 
         if face_vector_distances == None:
             continue
