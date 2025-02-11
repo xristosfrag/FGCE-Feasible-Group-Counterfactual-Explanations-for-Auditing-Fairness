@@ -260,7 +260,7 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
 def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith_approch="mean_scotts_rule", classifier="xgb",\
                     group_identifier='sex', upper_limit_for_k=10, steps=10, group_identifier_value=None,\
                     skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, skip_distance_calculation=True,\
-                    max_d=1000000000, representation=64):
+                    max_d=1000000000, representation=64, bst=0.1):
     face_dists = []
     face_wij = []
     gfce_dists = []
@@ -285,7 +285,7 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
                                 datasetName=datasetName, group_identifier=group_identifier,
                                 classifier='xgb', compare_with_Face=True, skip_distance_calculation=skip_distance_calculation,
                                 skip_model_training=skip_model_training, skip_graph_creation=skip_graph_creation, skip_fgce_calculation=False,
-                                k=k, max_d = max_d, cost_function="max_path_cost", fgce_init_dict=fgce_init_dict)
+                                k=k, max_d = max_d, cost_function="max_path_cost", fgce_init_dict=fgce_init_dict, bst=bst)
 
         if face_vector_distances == None:
             continue
