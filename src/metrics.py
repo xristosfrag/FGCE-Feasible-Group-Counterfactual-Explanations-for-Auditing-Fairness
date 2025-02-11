@@ -237,8 +237,8 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     sns.set(style="white")
 
     plt.figure(figsize=(8, 6))
-    sns.lineplot(x=x_values, y=x_values_g0, marker='o', color='mediumseagreen', label='Group 0 kAUC')
-    sns.lineplot(x=x_values, y=x_values_g1, marker='s', color='coral', label='Group 1 kAUC')
+    sns.lineplot(x=x_values, y=x_values_g0, marker='o', color='mediumseagreen', label='Group 0')
+    sns.lineplot(x=x_values, y=x_values_g1, marker='s', color='coral', label='Group 1')
     plt.xlabel(score, fontsize=20)
     plt.ylabel(f'{score.upper()}AUC Score', fontsize=20)
     plt.ylim(min_y_value - 0.2, max_y_value + 0.1)
@@ -261,8 +261,8 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
 
     # Set initial x-axis limit
     plt.xlim(min(x_values) - 0.1, max(x_values) + (1 if score == 'k' else 0.5))
-    plt.ylim(min(min(sp_G0), min(sp_G1)) - (0.45 if score == 'k' else 2),
-            max(max(sp_G0), max(sp_G1)) + (1 if score == 'k' else 2.6))
+    plt.ylim(min(min(sp_G0), min(sp_G1)) - (0.45 if score == 'k' else 2.2),
+            max(max(sp_G0), max(sp_G1)) + (1 if score == 'k' else 3.2))
 
     x_min, x_max = 0, 100  
     extend_x = 0 
@@ -315,13 +315,12 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     legend.get_title().set_ha('center')
 
     plt.ylabel('Saturation Point', fontsize=20)
-    plt.tight_layout()
 
     if score == 'k':
         plt.xlabel('k', fontsize=20)
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf")
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", bbox_inches='tight')
     else:
         plt.xlabel('d', fontsize=20)
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf")
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf", bbox_inches='tight')
 
     plt.show()
