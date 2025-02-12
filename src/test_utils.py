@@ -257,7 +257,7 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
     fig_legend.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/{datasetName}_legend.pdf")
     plt.show()
     
-def nice_numbers(range_min, range_max, num_ticks, score='k'):
+def nice_numbers(range_min, range_max, num_ticks, score='k', min_d=0.1):
     """
     Calculate "nice" numbers for the given range and number of ticks.
 
@@ -308,9 +308,12 @@ def nice_numbers(range_min, range_max, num_ticks, score='k'):
     if score == 'k':
         while len(ticks) != num_ticks:
             ticks = nice_numbers(range_min, range_max+1, num_ticks)
-    elif score == 'd':
-        while len(ticks) > num_ticks:
+    elif score == 'd' and min_d>0.1:
+        while len(ticks) != num_ticks:
             ticks = nice_numbers(range_min-0.1, range_max, num_ticks)    
+    elif score == 'd':
+        while len(ticks) != num_ticks:
+            ticks = nice_numbers(range_min, range_max+0.1, num_ticks)
 
     return ticks
 

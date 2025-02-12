@@ -71,7 +71,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
         auc_matrix[cfes] = {}
         results = {}
         
-        d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d')
+        d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d', min_d=lower_limit_range_for_d)
         for max_d in d_values:
             r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
@@ -133,9 +133,11 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         lower_limit_range_for_d = 0.1
     if upper_limit_range_for_d is None:
         upper_limit_range_for_d = np.max(distances) 
+        print(upper_limit_range_for_d)
     elif upper_limit_range_for_d == "max_distance_dataset":
         upper_limit_range_for_d = max_possible_distance_in_dataset(datasetName)
-    d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d')
+    d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d', min_d=lower_limit_range_for_d)
+    print(d_values)
 
     k_values =nice_numbers(1, upper_limit_for_k, steps, score='k')
     for d in d_values: 
