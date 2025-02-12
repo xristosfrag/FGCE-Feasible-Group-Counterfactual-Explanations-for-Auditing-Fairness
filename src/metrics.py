@@ -42,32 +42,36 @@ def max_possible_distance_in_dataset(datasetName):
     return np.sqrt(len(feature_set))
 
 def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value=None, classifier='xgb',\
-          bandwith_approch="mean_scotts_rule", upper_limit_for_k=10, lower_limit_range_for_d=0.1, steps=10, skip_distance_calculation=True,\
-                     skip_fgce_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64):
+          bandwith_approch="mean_scotts_rule", upper_limit_for_k=10, lower_limit_range_for_d=None, upper_limit_range_for_d=None, steps=10, skip_distance_calculation=True,\
+                     skip_fgce_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64, verbose=False):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
 
-    max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
-    d_step = np.round(((max_possible_distance_for_these_features - 0.1) /steps), 1)
-
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
-                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
-                group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_bandwith_calculation,\
-                skip_graph_creation=skip_graph_creation, representation=representation)
+                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch, verbose=verbose,\
+                group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
+                skip_graph_creation=skip_graph_creation, representation=representation, skip_bandwith_calculation=skip_bandwith_calculation)
     fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
          "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
-    k_values = np.linspace(1, upper_limit_for_k, steps)
-    k_values_int = np.round(k_values).astype(int)
-    for cfes in k_values_int:
+    if lower_limit_range_for_d is None:
+        lower_limit_range_for_d = 0.1
+    if upper_limit_range_for_d is None:
+        upper_limit_range_for_d = np.max(distances) 
+    elif upper_limit_range_for_d == "max_distance_dataset":
+        upper_limit_range_for_d = max_possible_distance_in_dataset(datasetName)
+
+    k_values = nice_numbers(1, upper_limit_for_k, steps, score='k')
+    for cfes in k_values:
         auc_matrix[cfes] = {}
         results = {}
         
-        for max_d in np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, d_step):
+        d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d')
+        for max_d in d_values:
             r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                 max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
@@ -94,47 +98,50 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
         saturation_points[cfes] = saturation_points_g
         cov_for_saturation_points[cfes] = coverage_till_now_g
 
-        x = list(np.arange(lower_limit_range_for_d, max_possible_distance_for_these_features, d_step))
-        max_auc = auc(x, [100]*len(x))
+        max_auc = auc(d_values, [100]*len(d_values))
 
         auc_matrix[cfes] = {}
         
         for key in group_keys:
             group_coverages_array = np.array(group_coverages[key])
-            normalized_auc = np.round(auc(x, group_coverages_array) / max_auc, 2)
+            normalized_auc = np.round(auc(d_values, group_coverages_array) / max_auc, 2)
             auc_matrix[cfes][key] = normalized_auc
     
     return saturation_points, cov_for_saturation_points, auc_matrix 
 
 
-def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value='None', classifier='xgb', upper_limit_for_k=10,\
-          steps=10, skip_fgce_calculation=True, skip_model_training=True, skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64,
-          bandwith_approch='mean_scotts_rule'):
+def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value='None', classifier='xgb',\
+        upper_limit_for_k=10, lower_limit_range_for_d=None, upper_limit_range_for_d=None, steps=10, skip_fgce_calculation=True, skip_model_training=True,\
+        skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64, bandwith_approch='mean_scotts_rule', verbose=False):
     auc_matrix = {}
     saturation_points = {}
     cov_for_saturation_points = {}
     cov_for_saturation_points = {}
 
-    max_possible_distance_for_these_features = max_possible_distance_in_dataset(datasetName)
-    d_steps = np.round(np.linspace(0.1, max_possible_distance_for_these_features, num=steps), 1)
-
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
-                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
+                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch, verbose=verbose,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
-                skip_graph_creation=skip_graph_creation, skip_bandwith_calculation=skip_bandwith_calculation, representation=representation)
+                skip_graph_creation=skip_graph_creation, representation=representation, skip_bandwith_calculation=skip_bandwith_calculation)
     fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
          "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
     
-    k_values = np.linspace(1, upper_limit_for_k, steps)
-    k_values_int = np.round(k_values).astype(int)
-    for d in d_steps: 
+    if lower_limit_range_for_d is None:
+        lower_limit_range_for_d = 0.1
+    if upper_limit_range_for_d is None:
+        upper_limit_range_for_d = np.max(distances) 
+    elif upper_limit_range_for_d == "max_distance_dataset":
+        upper_limit_range_for_d = max_possible_distance_in_dataset(datasetName)
+    d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d')
+
+    k_values =nice_numbers(1, upper_limit_for_k, steps, score='k')
+    for d in d_values: 
         d = np.round(d, 2)
         auc_matrix[d] = {}
         results = {}
-        for cfes in k_values_int:
+        for cfes in k_values:
             r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                     skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                     max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
@@ -162,12 +169,12 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         saturation_points[d] = saturation_points_g
         cov_for_saturation_points[d] = coverage_till_now_g
 
-        max_auc = auc(k_values_int, [100]*len(k_values_int))
+        max_auc = auc(k_values, [100]*len(k_values))
 
         auc_matrix[d] = {}
         for key in group_keys:
             group_coverages_array = np.array(group_coverages[key])
-            normalized_auc = np.round(auc(k_values_int, group_coverages_array) / max_auc, 2)
+            normalized_auc = np.round(auc(k_values, group_coverages_array) / max_auc, 2)
             auc_matrix[d][key] = normalized_auc
         
     return saturation_points, cov_for_saturation_points, auc_matrix
@@ -219,6 +226,63 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
         aucs_cov[cov] = aucs
 
     return saturation_points_cov, y_values_cov, aucs_cov
+
+def nice_numbers(range_min, range_max, num_ticks, score='k'):
+    """
+    Calculate "nice" numbers for the given range and number of ticks.
+
+    Parameters
+    ----------
+    range_min : float
+        The minimum value of the range.
+    range_max : float
+        The maximum value of the range.
+    num_ticks : int
+        The number of ticks to generate.
+    score : str
+        The score type ('k' or 'd'). Default is 'k'.
+
+    Returns
+    -------
+    ticks : numpy.ndarray
+        An array of "nice" numbers
+    """
+    # Calculate the range
+    range_size = range_max - range_min
+
+    # Calculate the approximate tick spacing
+    tick_spacing = range_size / (num_ticks - 1)
+
+    # Find a "nice" number for the tick spacing
+    exponent = np.floor(np.log10(tick_spacing))
+    fraction = tick_spacing / 10**exponent
+
+    if fraction < 1.5:
+        nice_fraction = 1
+    elif fraction < 3:
+        nice_fraction = 2
+    elif fraction < 7:
+        nice_fraction = 5
+    else:
+        nice_fraction = 10
+
+    nice_tick_spacing = nice_fraction * 10**exponent
+
+    # Calculate the start and end points
+    min_tick = np.ceil(range_min / nice_tick_spacing) * nice_tick_spacing
+    max_tick = np.ceil(range_max / nice_tick_spacing) * nice_tick_spacing
+
+    # Generate the ticks
+    ticks = np.arange(min_tick, max_tick + nice_tick_spacing, nice_tick_spacing)
+
+    if score == 'k':
+        while len(ticks) != num_ticks:
+            ticks = nice_numbers(range_min, range_max+1, num_ticks)
+    elif score == 'd':
+        while len(ticks) > num_ticks:
+            ticks = nice_numbers(range_min-0.1, range_max, num_ticks)    
+
+    return ticks
 
 def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, auc_matrix, score='k'):
     x_values = list(auc_matrix.keys())
