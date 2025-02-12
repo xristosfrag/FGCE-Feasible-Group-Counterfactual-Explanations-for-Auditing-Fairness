@@ -306,6 +306,9 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		if verbose:
 			print("Loading distances from file ...")
 		distances = pk.load(open(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}Distances.pkl", "rb"))
+		if verbose:
+				print(f"Max distance in the dataset: {np.sqrt(len(FEATURE_COLUMNS))}")
+				print(f"Max possible distance considered in graph: {np.max(distances)}")
 	else:
 		kernel = Kernel(datasetName, X, skip_bandwith_calculation=skip_bandwith_calculation, bandwith_approch=bandwith_approch)
 		kernel.fitKernel(X)
@@ -315,6 +318,7 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 		start_time = time.time()
 		dng_obj = GraphBuilder(feasibility_constraints, FEATURE_COLUMNS, X, kernel, exclude_columns=True)
 		distances, graph, densities = dng_obj.compute_pairwise_distances_within_subgroups_and_graph(datasetName, data[FEATURE_COLUMNS], epsilon, feasibility_constraints, representation)
+		fgce.set_graph(graph)
 		end_time = time.time()
 		execution_time = end_time - start_time
 		if verbose:		
@@ -448,7 +452,6 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs")
 
 	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_d_{max_d_store}_kmethod_{k_selection_method}.json"
-	print(file_path)
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
 		return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
@@ -483,7 +486,6 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs"):
 			os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs")
 
-		print(file_path)
 		try:
 			with open(file_path, "w") as outfile:
 				json.dump(results, outfile)
