@@ -448,7 +448,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs")
 
 	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_d_{max_d_store}_kmethod_{k_selection_method}.json"
-	
+	print(file_path)
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
 		return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
@@ -483,6 +483,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs"):
 			os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs")
 
+		print(file_path)
 		try:
 			with open(file_path, "w") as outfile:
 				json.dump(results, outfile)

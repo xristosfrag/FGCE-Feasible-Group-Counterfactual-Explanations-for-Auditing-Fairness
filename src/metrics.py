@@ -61,8 +61,9 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
-    k_step = int(np.round(upper_limit_for_k/steps))
-    for cfes in np.arange(1, upper_limit_for_k, k_step):
+    k_values = np.linspace(1, upper_limit_for_k, steps)
+    k_values_int = np.round(k_values).astype(int)
+    for cfes in k_values_int:
         auc_matrix[cfes] = {}
         results = {}
         
@@ -127,12 +128,13 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
               "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
     
-    k_step = np.round(upper_limit_for_k/steps)
+    k_values = np.linspace(1, upper_limit_for_k, steps)
+    k_values_int = np.round(k_values).astype(int)
     for d in d_steps: 
         d = np.round(d, 2)
         auc_matrix[d] = {}
         results = {}
-        for cfes in np.arange(1, upper_limit_for_k, k_step):
+        for cfes in k_values_int:
             r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                     skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                     max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
@@ -160,13 +162,12 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         saturation_points[d] = saturation_points_g
         cov_for_saturation_points[d] = coverage_till_now_g
 
-        x = list(np.arange(1, upper_limit_for_k, k_step))
-        max_auc = auc(x, [100]*len(x))
+        max_auc = auc(k_values_int, [100]*len(k_values_int))
 
         auc_matrix[d] = {}
         for key in group_keys:
             group_coverages_array = np.array(group_coverages[key])
-            normalized_auc = np.round(auc(x, group_coverages_array) / max_auc, 2)
+            normalized_auc = np.round(auc(k_values_int, group_coverages_array) / max_auc, 2)
             auc_matrix[d][key] = normalized_auc
         
     return saturation_points, cov_for_saturation_points, auc_matrix
