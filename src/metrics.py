@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from main import main_cost_constrained_GCFEs, main_coverage_constrained_GCFEs_MIP
+from test_utils import nice_numbers
 from main import *
 
 def find_saturation_point_and_max_d(total_costs, k_values):
@@ -181,14 +182,14 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
 
 def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=None, epsilon=0.5, k_values=None, coverages=None,\
          tp=0.5, td=0.001, classifier='xgb', bandwith_approch='mean_scotts_rule', skip_model_training=True, skip_distance_calculation=True,\
-            skip_graph_creation=True, skip_bandwith_calculation=True, representation=64):
+            skip_graph_creation=True, skip_bandwith_calculation=True, representation=64, verbose=False):
     results = {coverage: {k: None for k in k_values} for coverage in coverages}
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
-                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
+                datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch, verbose=verbose,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
-                skip_graph_creation=skip_graph_creation, representation=representation)
+                skip_graph_creation=skip_graph_creation, representation=representation, skip_bandwith_calculation=skip_bandwith_calculation)
     fgce_init_dict = {"fgce": fgce, "graph": graph, "distances": distances, "data": data, "data_np": data_np, "data_df_copy": data_df_copy,\
          "attr_col_mapping": attr_col_mapping, "normalized_group_identifer_value": normalized_group_identifer_value, "numeric_columns": numeric_columns,\
          "positive_points": positive_points, "FN": FN, "FN_negatives_by_group": FN_negatives_by_group, "node_connectivity": node_connectivity,\
@@ -198,7 +199,7 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
         for k in k_values:
             results[coverage][k] = main_coverage_constrained_GCFEs_MIP(epsilon=epsilon, tp=0.6, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=True, skip_graph_creation=True, skip_fgce_calculation=False, skip_distance_calculation=True,
-                                cost_function = "max_vector_distance", k=k, cov=coverage, fgce_init_dict=fgce_init_dict)
+                                cost_function = "max_vector_distance", k=k, cov=coverage, fgce_init_dict=fgce_init_dict, verbose=verbose)
     
     saturation_points_cov, y_values_cov, aucs_cov = {}, {}, {}
     for cov in results:
@@ -227,14 +228,12 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
 
     return saturation_points_cov, y_values_cov, aucs_cov
 
-def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, auc_matrix, score='k'):
+def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, auc_matrix, score='k',\
+        expand_left_x_axis=0, expand_right_x_axis=1, expand_bottom_y_axis=0.5, expand_top_y_axis=0.5):
     x_values = list(auc_matrix.keys())
     group_keys = list(auc_matrix[x_values[0]].keys())
     x_values_g0 = [auc_matrix[x][group_keys[0]] for x in x_values]
     x_values_g1 = [auc_matrix[x][group_keys[1]] for x in x_values]
-
-    min_y_value = min(min(x_values_g0), min(x_values_g1))
-    max_y_value = max(max(x_values_g0), max(x_values_g1))
 
     sp_G0 = [saturation_points[x][group_keys[0]] for x in x_values]
     sp_G1 = [saturation_points[x][group_keys[1]] for x in x_values]
@@ -243,13 +242,11 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     max_cov_G1 = [np.round(cov_for_saturation_points[x][group_keys[1]],2) for x in x_values]
 
     sns.set(style="white")
-
     plt.figure(figsize=(8, 6))
-    sns.lineplot(x=x_values, y=x_values_g0, marker='o', color='mediumseagreen', label='Group 0')
-    sns.lineplot(x=x_values, y=x_values_g1, marker='s', color='coral', label='Group 1')
+    sns.lineplot(x=x_values, y=x_values_g0, marker='o', color='mediumseagreen', label='Group 0', linewidth=2)
+    sns.lineplot(x=x_values, y=x_values_g1, marker='s', color='coral', label='Group 1', linewidth=2)
     plt.xlabel(score, fontsize=20)
     plt.ylabel(f'{score.upper()}AUC Score', fontsize=20)
-    plt.ylim(min_y_value - 0.2, max_y_value + 0.1)
     plt.xticks(x_values)
     plt.legend(fontsize=16, framealpha=0.2)
     plt.xticks(fontsize=20)
@@ -261,16 +258,15 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
         plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_scores.pdf")
     plt.show()
 
-
-
-    plt.figure(figsize=(8, 6))
-    sns.lineplot(x=x_values, y=sp_G0, color='mediumseagreen', label='Group 0', marker='o')
-    sns.lineplot(x=x_values, y=sp_G1, color='coral', label='Group 1', marker='s')
-
-    # Set initial x-axis limit
-    plt.xlim(min(x_values) - 0.1, max(x_values) + (1 if score == 'k' else 0.5))
-    plt.ylim(min(min(sp_G0), min(sp_G1)) - (0.45 if score == 'k' else 2.2),
-            max(max(sp_G0), max(sp_G1)) + (1 if score == 'k' else 3.2))
+    plt.figure(figsize=(9, 6))
+    sns.lineplot(x=x_values, y=sp_G0, color='mediumseagreen', label='Group 0', marker='o', linewidth=2, alpha=0.7)
+    sns.lineplot(x=x_values, y=sp_G1, color='coral', label='Group 1', marker='s', linewidth=2, alpha=0.7)
+    
+    ## get the axis limit from plt
+    x_min, x_max = plt.xlim()
+    y_min, y_max = plt.ylim()
+    plt.xlim(x_min-expand_left_x_axis, max(x_values) +expand_right_x_axis)
+    plt.ylim(y_min-expand_bottom_y_axis, y_max+expand_top_y_axis)
 
     x_min, x_max = 0, 100  
     extend_x = 0 
@@ -278,22 +274,22 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
 
     for i, (x, sp0, max_cov0, sp1, max_cov1) in enumerate(zip(x_values, sp_G0, max_cov_G0, sp_G1, max_cov_G1)):
         if sp0 > sp1:
-            offset0 = (15, 20)
-            offset1 = (15, -20)
+            offset0 = (10, 10)
+            offset1 = (10, -20)
         elif sp0 < sp1:
-            offset0 = (15, -20)
-            offset1 = (15, 20)
+            offset0 = (10, -20)
+            offset1 = (10, 10)
         else:
             if max_cov0 > max_cov1:
-                offset0 = (15, 20)
-                offset1 = (15, -20)
+                offset0 = (10, 10)
+                offset1 = (10, -20)
             else:
-                offset0 = (15, -20)
-                offset1 = (15, 20)
+                offset0 = (10, -20)
+                offset1 = (10, 10)
 
         annotation_x_max_0 = i* offset0[0]   
         annotation_y_max_0 = i* offset0[1] 
-        if x > 10 and score == 'k':
+        if score == 'k':
             if annotation_x_max_0 > x_max:
                 extend_x = extend_x+1 
                 extend_x = extend_x+1 
@@ -304,31 +300,23 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
         if annotation_y_max_0 > max(sp_G0):
             extend_y = extend_y+1 
 
-        plt.annotate(f'{max_cov0}', (x, sp0), textcoords="offset points", xytext=offset0, ha='center', color='mediumseagreen')
-        plt.annotate(f'{max_cov1}', (x, sp1), textcoords="offset points", xytext=offset1, ha='center', color='coral')
+        plt.annotate(f'{max_cov0}', (x, sp0), textcoords="offset points", xytext=offset0, \
+                     ha='center', color='mediumseagreen', weight='bold')
+        plt.annotate(f'{max_cov1}', (x, sp1), textcoords="offset points", xytext=offset1, \
+                     ha='center', color='coral', weight='bold')
 
-    if score == 'k':
-        if extend_x > 0:
-            plt.xlim(x_min, max(x_values) + extend_x)
-    if score == 'd':
-        if extend_y > 0:
-            plt.ylim(min(min(sp_G0), min(sp_G1)) - extend_y,
-                max(max(sp_G0), max(sp_G1)) + extend_y) 
-
-    plt.xticks(x_values)
-    legend = plt.legend(title='Numbers indicate Maximum Coverage', loc='best', fontsize=16, framealpha=0.3)
-    legend.get_title().set_fontsize(16) 
-    plt.xticks(fontsize=20)
+    plt.legend(fontsize=16, framealpha=0.2)    
+    plt.xticks(x_values, fontsize=20)
     plt.yticks(fontsize=20)
-    legend.get_title().set_ha('center')
-
-    plt.ylabel('Saturation Point', fontsize=20)
 
     if score == 'k':
+        plt.ylabel('Saturation Point: sp(k)', fontsize=20)
         plt.xlabel('k', fontsize=20)
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", bbox_inches='tight')
+        # plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", pad_inches=0.1)
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", dpi=300, bbox_inches=None)  # Same settings
     else:
+        plt.ylabel('Saturation Point: sp(d)', fontsize=20)
         plt.xlabel('d', fontsize=20)
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf", bbox_inches='tight')
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf", pad_inches=0.1)
 
     plt.show()
