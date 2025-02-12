@@ -257,6 +257,63 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
     fig_legend.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/{datasetName}_legend.pdf")
     plt.show()
     
+def nice_numbers(range_min, range_max, num_ticks, score='k'):
+    """
+    Calculate "nice" numbers for the given range and number of ticks.
+
+    Parameters
+    ----------
+    range_min : float
+        The minimum value of the range.
+    range_max : float
+        The maximum value of the range.
+    num_ticks : int
+        The number of ticks to generate.
+    score : str
+        The score type ('k' or 'd'). Default is 'k'.
+
+    Returns
+    -------
+    ticks : numpy.ndarray
+        An array of "nice" numbers
+    """
+    # Calculate the range
+    range_size = range_max - range_min
+
+    # Calculate the approximate tick spacing
+    tick_spacing = range_size / (num_ticks - 1)
+
+    # Find a "nice" number for the tick spacing
+    exponent = np.floor(np.log10(tick_spacing))
+    fraction = tick_spacing / 10**exponent
+
+    if fraction < 1.5:
+        nice_fraction = 1
+    elif fraction < 3:
+        nice_fraction = 2
+    elif fraction < 7:
+        nice_fraction = 5
+    else:
+        nice_fraction = 10
+
+    nice_tick_spacing = nice_fraction * 10**exponent
+
+    # Calculate the start and end points
+    min_tick = np.ceil(range_min / nice_tick_spacing) * nice_tick_spacing
+    max_tick = np.ceil(range_max / nice_tick_spacing) * nice_tick_spacing
+
+    # Generate the ticks
+    ticks = np.arange(min_tick, max_tick + nice_tick_spacing, nice_tick_spacing)
+
+    if score == 'k':
+        while len(ticks) != num_ticks:
+            ticks = nice_numbers(range_min, range_max+1, num_ticks)
+    elif score == 'd':
+        while len(ticks) > num_ticks:
+            ticks = nice_numbers(range_min-0.1, range_max, num_ticks)    
+
+    return ticks
+
 def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith_approch="mean_scotts_rule", classifier="xgb",\
                     group_identifier='sex', upper_limit_for_k=10, steps=10, group_identifier_value=None,\
                     skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, skip_distance_calculation=True,\

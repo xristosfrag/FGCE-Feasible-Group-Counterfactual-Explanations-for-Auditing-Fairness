@@ -227,63 +227,6 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
 
     return saturation_points_cov, y_values_cov, aucs_cov
 
-def nice_numbers(range_min, range_max, num_ticks, score='k'):
-    """
-    Calculate "nice" numbers for the given range and number of ticks.
-
-    Parameters
-    ----------
-    range_min : float
-        The minimum value of the range.
-    range_max : float
-        The maximum value of the range.
-    num_ticks : int
-        The number of ticks to generate.
-    score : str
-        The score type ('k' or 'd'). Default is 'k'.
-
-    Returns
-    -------
-    ticks : numpy.ndarray
-        An array of "nice" numbers
-    """
-    # Calculate the range
-    range_size = range_max - range_min
-
-    # Calculate the approximate tick spacing
-    tick_spacing = range_size / (num_ticks - 1)
-
-    # Find a "nice" number for the tick spacing
-    exponent = np.floor(np.log10(tick_spacing))
-    fraction = tick_spacing / 10**exponent
-
-    if fraction < 1.5:
-        nice_fraction = 1
-    elif fraction < 3:
-        nice_fraction = 2
-    elif fraction < 7:
-        nice_fraction = 5
-    else:
-        nice_fraction = 10
-
-    nice_tick_spacing = nice_fraction * 10**exponent
-
-    # Calculate the start and end points
-    min_tick = np.ceil(range_min / nice_tick_spacing) * nice_tick_spacing
-    max_tick = np.ceil(range_max / nice_tick_spacing) * nice_tick_spacing
-
-    # Generate the ticks
-    ticks = np.arange(min_tick, max_tick + nice_tick_spacing, nice_tick_spacing)
-
-    if score == 'k':
-        while len(ticks) != num_ticks:
-            ticks = nice_numbers(range_min, range_max+1, num_ticks)
-    elif score == 'd':
-        while len(ticks) > num_ticks:
-            ticks = nice_numbers(range_min-0.1, range_max, num_ticks)    
-
-    return ticks
-
 def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, auc_matrix, score='k'):
     x_values = list(auc_matrix.keys())
     group_keys = list(auc_matrix[x_values[0]].keys())
