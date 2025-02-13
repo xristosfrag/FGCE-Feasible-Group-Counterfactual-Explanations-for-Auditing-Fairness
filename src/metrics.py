@@ -423,7 +423,7 @@ def generate_recourse_rules(dataframe, results, FEATURE_COLUMNS, datasetName):
         group_actions[group_id] = total_action_for_group
     return group_actions
 
-def sort_actions_by_frequency_per_wcc(dataframe, actions_for_group):
+def sort_actions_by_frequency_per_wcc(actions_for_group):
     action_frequency = {}
     action_frequency_increment = {}
     subgroup_actions = {}
