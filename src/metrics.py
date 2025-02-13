@@ -500,3 +500,37 @@ def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g
     plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{dataset_name}{sep}figs{sep}attribution.pdf")
     plt.show()
 
+def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0, action_frequency_increment_g1, dataset_feature_descriptions, sx, sy, freq_threshold=None):
+    for wcc, action_frequency_g0_wcc in action_frequency_g0.items():
+        print(f"WCC: {wcc}")
+        filtered_keys_g0 = set(key for key, value in action_frequency_g0_wcc.items() if freq_threshold is None or value > freq_threshold)
+        sorted_keys_g0 = sorted(filtered_keys_g0, key=lambda x: action_frequency_g0_wcc.get(x, 0), reverse=True)
+        
+        fig_size = (sx, sy) 
+        plt.gcf().set_size_inches(fig_size)
+        plt.barh(sorted_keys_g0, [action_frequency_g0_wcc.get(key, 0) for key in sorted_keys_g0], height=0.3, color='mediumseagreen', align='center')
+        plt.ylabel('Attribute Description', fontsize=12)
+        plt.xlabel('Frequency (%)', fontsize=12)
+        plt.xticks(fontsize=12)
+        plt.gca().invert_yaxis()
+        plt.grid(axis='x')
+        plt.tight_layout()
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf")
+        plt.show()
+
+    for wcc, action_frequency_g1_wcc in action_frequency_g1.items():    
+        print(f"WCC: {wcc}")
+        filtered_keys_g1 = set(key for key, value in action_frequency_g1_wcc.items() if freq_threshold is None or value > freq_threshold)
+        sorted_keys_g1 = sorted(filtered_keys_g1, key=lambda x: action_frequency_g1_wcc.get(x, 0), reverse=True)
+        
+        fig_size = (sx, sy) 
+        plt.gcf().set_size_inches(fig_size)
+        plt.barh(sorted_keys_g1, [action_frequency_g1_wcc.get(key, 0) for key in sorted_keys_g1], height=0.3, color='coral', align='center')
+        plt.ylabel('Attribute Description', fontsize=12)
+        plt.xlabel('Frequency (%)', fontsize=12)
+        plt.xticks(fontsize=12)
+        plt.gca().invert_yaxis()
+        plt.grid(axis='x')
+        plt.tight_layout()
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf")
+        plt.show()
