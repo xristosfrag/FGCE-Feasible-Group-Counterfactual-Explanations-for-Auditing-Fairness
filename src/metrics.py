@@ -381,3 +381,45 @@ def generate_recourse_rules_per_wcc(dataframe, results, FEATURE_COLUMNS, dataset
 
         group_actions[group_id] = total_action_for_group
     return group_actions        
+    
+def generate_recourse_rules(dataframe, results, FEATURE_COLUMNS, datasetName):
+    processed_features = set()
+
+    group_actions = {}
+    
+    for group_id, group_stats in results.items():
+        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]: 
+            continue
+
+        total_action_for_group = []
+        
+        for fn_id, cfe_details in group_stats.items():
+            try:
+                fn_id = int(fn_id)
+            except ValueError:
+                continue  
+            
+            fn_vector = dataframe.loc[fn_id, FEATURE_COLUMNS]
+            cfe_vector = dataframe.loc[cfe_details['CFE_name'], FEATURE_COLUMNS]
+            actions = []
+            for col in FEATURE_COLUMNS:
+                if fn_vector[col] != cfe_vector[col]:
+                    # handle one-hot encoded features
+                    if datasetName != "Heloc" and any(col.startswith(key) for key in dataset_one_hot_mapping[datasetName].keys()):
+                        main_feature, value = col.rsplit('_', 1)
+                        if main_feature in processed_features:
+                            continue
+                        else:
+                            processed_features.add(main_feature)
+                            actions.append((main_feature, fn_vector[col], cfe_vector[col]))
+                    else:
+                        if col in dataset_feature_descriptions[datasetName]:
+                            actions.append((dataset_feature_descriptions[datasetName][col], fn_vector[col], cfe_vector[col]))
+                        else:
+                            actions.append((col, fn_vector[col], cfe_vector[col]))                        
+            
+            total_action_for_group.append(actions)
+
+        group_actions[group_id] = total_action_for_group
+    return group_actions
+
