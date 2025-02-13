@@ -534,3 +534,32 @@ def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_freq
         plt.tight_layout()
         plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf")
         plt.show()
+
+def attribution_analysis(datasetName='Adult', epsilon=0.4, group_identifier='sex', group_identifier_value=None,\
+        classifier="xgb", skip_model_training=True, bandwith_approch="mean_scotts_rule", skip_bandwith_calculation=True,\
+        max_d=1.05, cost_function="max_vector_distance", skip_distance_calculation=True, skip_graph_creation=True,\
+        k=12, k_selection_method="greedy_accross_all_ccs", skip_fgce_calculation=True, verbose=False,\
+        per_group_per_subgroup="per_group", freq_threshold=50, x_axis_size=8, y_axis_size=6):
+
+    results, data, _, _, _, _, _, _,_ = \
+            main_cost_constrained_GCFEs(epsilon=epsilon, datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, group_identifier_value=group_identifier_value,\
+            skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation, skip_bandwith_calculation=skip_bandwith_calculation,\
+              skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation, bandwith_approch=bandwith_approch,\
+            max_d = max_d, cost_function = cost_function, k=k, k_selection_method=k_selection_method, verbose=verbose)
+    group_ids = []
+    for group_id, _ in results.items():
+        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]:
+            continue
+        group_ids.append(group_id)
+    if per_group_per_subgroup == "per_group":
+        actions = generate_recourse_rules(data, results, data.columns, datasetName)
+        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency(data, actions[group_ids[0]])
+        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency(data, actions[group_ids[1]])
+        plot_feature_frequency(datasetName, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0,\
+                                action_frequency_increment_g1, dataset_feature_descriptions, x_axis_size, y_axis_size, freq_threshold=freq_threshold)
+    elif per_group_per_subgroup == "per_subgroup":
+        actions = generate_recourse_rules_per_wcc(data, results, data.columns, datasetName)
+        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency_per_wcc(data, actions[group_ids[0]])
+        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency_per_wcc(data, actions[group_ids[1]])
+        plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1,  action_frequency_increment_g0, action_frequency_increment_g1,\
+                        dataset_feature_descriptions,x_axis_size, y_axis_size, freq_threshold=freq_threshold)
