@@ -474,3 +474,29 @@ def sort_actions_by_frequency(actions_for_group):
     action_frequency_increment = dict(sorted(action_frequency_increment.items(), key=lambda item: item[1], reverse=True))
     return action_frequency, action_frequency_increment
 
+def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0, action_frequency_increment_g1, dataset_feature_descriptions, sx, sy, freq_threshold=None):
+    filtered_keys_g0 = set(key for key, value in action_frequency_g0.items() if freq_threshold is None or value > freq_threshold)
+    filtered_keys_g1 = set(key for key, value in action_frequency_g1.items() if freq_threshold is None or value > freq_threshold)
+    filtered_keys = filtered_keys_g0.union(filtered_keys_g1)
+    
+    # Sort keys based on the maximum value for both groups
+    sorted_keys = sorted(filtered_keys, key=lambda x: max(action_frequency_g0.get(x, 0), action_frequency_g1.get(x, 0)), reverse=True)
+    
+    y_combined = range(len(sorted_keys))                 
+    bar_width = 0.3
+
+    plt.barh(y_combined, [action_frequency_g0.get(key, 0) for key in sorted_keys], height=bar_width, color='r', align='center')
+    plt.barh([y + bar_width for y in y_combined], [action_frequency_g1.get(key, 0) for key in sorted_keys], height=bar_width, color='g', align='center')
+    plt.ylabel('Attribute Description', fontsize=12)
+    plt.xlabel('Frequency (%)', fontsize=12)
+    plt.legend(['Group 0', 'Group 1'])
+    plt.yticks([y + bar_width / 2 for y in y_combined], [dataset_feature_descriptions[dataset_name].get(key, key) for key in sorted_keys], fontsize=12)
+    plt.xticks(fontsize=12)
+    plt.gca().invert_yaxis()
+    plt.grid(axis='x')
+    fig_size = (sx, sy) 
+    plt.gcf().set_size_inches(fig_size)
+    plt.tight_layout()
+    plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{dataset_name}{sep}figs{sep}attribution.pdf")
+    plt.show()
+
