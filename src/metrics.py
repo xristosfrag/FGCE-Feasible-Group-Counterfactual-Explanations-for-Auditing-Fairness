@@ -137,7 +137,6 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
     elif upper_limit_range_for_d == "max_distance_dataset":
         upper_limit_range_for_d = max_possible_distance_in_dataset(datasetName)
     d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d', min_d=lower_limit_range_for_d)
-    print(d_values)
 
     k_values =nice_numbers(1, upper_limit_for_k, steps, score='k')
     for d in d_values: 
@@ -314,11 +313,71 @@ def plot_k_or_dAUC(datasetName, saturation_points, cov_for_saturation_points, au
     if score == 'k':
         plt.ylabel('Saturation Point: sp(k)', fontsize=20)
         plt.xlabel('k', fontsize=20)
-        # plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", pad_inches=0.1)
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", dpi=300, bbox_inches=None)  # Same settings
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_kAUC_sp_cov.pdf", dpi=300, bbox_inches=None)
     else:
         plt.ylabel('Saturation Point: sp(d)', fontsize=20)
         plt.xlabel('d', fontsize=20)
         plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}{datasetName}_dAUC_sp_cov.pdf", pad_inches=0.1)
 
     plt.show()
+
+
+# =====================================================================================================================
+# =====================================================================================================================
+#                 		 					ATTRIBUTION
+# =====================================================================================================================
+# =====================================================================================================================
+def generate_recourse_rules_per_wcc(dataframe, results, FEATURE_COLUMNS, datasetName):
+    processed_features = set()
+    group_actions = {}
+
+    # Get the aWCCs for each group
+    aWCCs_per_group = {}
+    for group_id, group_stats in results['Graph Stats'].items():
+        aWCCs = set()
+        r0 = results[group_id]
+        for fn in r0:
+            if fn in ['Coverage', 'Avg. distance', 'Avg. path cost', 'Median distance', 'Median path cost']:
+                continue
+            aWCCs.add(r0[fn]['cfe_cc'])
+        aWCCs_per_group[group_id] = aWCCs
+    
+    for group_id, group_stats in results.items():
+        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]:
+            continue
+        total_action_for_group = {}
+        for fn_id, cfe_details in group_stats.items():
+            try:
+                fn_id = int(fn_id)
+            except ValueError:
+                continue  
+            wcc = cfe_details['cfe_cc']
+            if wcc not in aWCCs_per_group[group_id]:  # Skip non-aWCCs
+                continue
+
+            fn_vector = dataframe.loc[fn_id, FEATURE_COLUMNS]
+            cfe_vector = dataframe.loc[cfe_details['CFE_name'], FEATURE_COLUMNS]
+
+            actions = []
+            for col in FEATURE_COLUMNS:
+                if fn_vector[col] != cfe_vector[col]:
+                    # handle one-hot encoded features
+                    if datasetName != "Heloc" and any(col.startswith(key) for key in dataset_one_hot_mapping[datasetName].keys()):
+                        main_feature, value = col.rsplit('_', 1)
+                        if main_feature in processed_features:
+                            continue
+                        else:
+                            processed_features.add(main_feature)
+                            actions.append((main_feature, fn_vector[col], cfe_vector[col]))
+                    else:
+                        if col in dataset_feature_descriptions[datasetName]:
+                            actions.append((dataset_feature_descriptions[datasetName][col], fn_vector[col], cfe_vector[col]))
+                        else:
+                            actions.append((col, fn_vector[col], cfe_vector[col]))
+            if wcc not in total_action_for_group:
+                total_action_for_group[wcc] = [actions]
+            else:
+                total_action_for_group[wcc].append(actions)
+
+        group_actions[group_id] = total_action_for_group
+    return group_actions        
