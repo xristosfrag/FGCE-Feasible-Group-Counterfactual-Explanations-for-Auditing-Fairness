@@ -423,3 +423,30 @@ def generate_recourse_rules(dataframe, results, FEATURE_COLUMNS, datasetName):
         group_actions[group_id] = total_action_for_group
     return group_actions
 
+def sort_actions_by_frequency_per_wcc(dataframe, actions_for_group):
+    action_frequency = {}
+    action_frequency_increment = {}
+    subgroup_actions = {}
+    for wcc, groupofactions in actions_for_group.items():
+        subgroup_actions[wcc] = len(groupofactions)
+        action_frequency[wcc] = {}
+        action_frequency_increment[wcc] = {}
+        for action in groupofactions:
+            for a in action:
+                if a[0] in action_frequency[wcc]:
+                    action_frequency[wcc][a[0]] += 1
+                else:
+                    action_frequency[wcc][a[0]] = 1
+
+                if a[0] in action_frequency_increment[wcc]:
+                    action_frequency_increment[wcc][a[0]] += abs(a[1] - a[2])
+                else:
+                    action_frequency_increment[wcc][a[0]] = abs(a[1] - a[2])
+
+        action_frequency[wcc] = {k: (v / subgroup_actions[wcc]) *100 for k, v in action_frequency[wcc].items()}
+        action_frequency_increment[wcc] = {k: (v / subgroup_actions[wcc]) *100 for k, v in action_frequency_increment[wcc].items()}
+
+        action_frequency[wcc] = dict(sorted(action_frequency[wcc].items(), key=lambda item: item[1], reverse=True))
+        action_frequency_increment[wcc] = dict(sorted(action_frequency_increment[wcc].items(), key=lambda item: item[1], reverse=True))
+    return action_frequency, action_frequency_increment
+
