@@ -450,3 +450,27 @@ def sort_actions_by_frequency_per_wcc(dataframe, actions_for_group):
         action_frequency_increment[wcc] = dict(sorted(action_frequency_increment[wcc].items(), key=lambda item: item[1], reverse=True))
     return action_frequency, action_frequency_increment
 
+def sort_actions_by_frequency(actions_for_group):
+    action_frequency = {}
+    action_frequency_increment = {}
+    for groupofactions in actions_for_group:
+        for action in groupofactions:
+            if action[0] in action_frequency:
+                action_frequency[action[0]] += 1
+            else:
+                action_frequency[action[0]] = 1
+
+            if action[0] in action_frequency_increment:
+                action_frequency_increment[action[0]] += abs(action[1] - action[2])
+            else:
+                action_frequency_increment[action[0]] = abs(action[1] - action[2])
+
+    total_actions = len(actions_for_group)
+    action_frequency = {k: (v / total_actions) *100 for k, v in action_frequency.items()}
+    action_frequency_increment = {k: (v / total_actions) *100 for k, v in action_frequency_increment.items()}
+
+
+    action_frequency = dict(sorted(action_frequency.items(), key=lambda item: item[1], reverse=True))
+    action_frequency_increment = dict(sorted(action_frequency_increment.items(), key=lambda item: item[1], reverse=True))
+    return action_frequency, action_frequency_increment
+
