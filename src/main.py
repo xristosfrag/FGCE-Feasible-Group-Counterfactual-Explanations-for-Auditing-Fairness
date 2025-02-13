@@ -435,7 +435,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
 			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
-					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation)
+					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation, verbose=verbose)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
@@ -454,7 +454,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_d_{max_d_store}_kmethod_{k_selection_method}.json"
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
-		return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
+		return results, data, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 	else:
 		start_time = time.time()
 		subgroups = utils.get_subgraphs_by_group(graph, data_np, data, attr_col_mapping, group_identifier, normalized_group_identifer_value, numeric_columns)
@@ -569,10 +569,10 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 			face_vector_distances = (face_vector_distances / face_max_vector_distance)  / fn_points_found
 			gfce_vector_distances = (gfce_vector_distances / gfce_max_vector_distance) / fn_points_found
 		else:
-			return results, data_np, attr_col_mapping, data_df_copy, None, None, 0, 0
+			return results, data, data_np, attr_col_mapping, data_df_copy, None, None, 0, 0
 
-		return results, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances, face_wij_distances, gfce_wij_distances
-	return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
+		return results, data, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances, face_wij_distances, gfce_wij_distances
+	return results, data, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 
 
 # =====================================================================================================================
@@ -680,7 +680,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 	
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
-		return results, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
+		return results, data, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 
 	else:
 		start_time = time.time()
@@ -803,9 +803,9 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 			face_vector_distances = (face_vector_distances /face_max_vector_distance)   /fn_points_found
 			gfce_vector_distances = (gfce_vector_distances /gfce_max_vector_distance) /fn_points_found
 		else:
-			return stats, data_np, attr_col_mapping, data_df_copy, None, None, 0, 0
-		return stats, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances, face_wij_distances, gfce_wij_distances
-	return stats, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
+			return stats, data, data_np, attr_col_mapping, data_df_copy, None, None, 0, 0
+		return stats, data, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances, face_wij_distances, gfce_wij_distances
+	return stats, data, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 
 
 
