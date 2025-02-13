@@ -423,3 +423,243 @@ def get_subgraphs_by_group(graph, data_np, data, attr_col_mapping, group_identif
             subgraph_nodes = [node for node, attrs in graph.nodes(data=True) if data.loc[node, group_identifier_column] == identifier]
             subgraphs[identifier] = graph.subgraph(subgraph_nodes)
     return subgraphs
+
+# =====================================================================================================================
+# =====================================================================================================================
+#                 		 					ATTRIBUTION
+# =====================================================================================================================
+# =====================================================================================================================
+dataset_feature_descriptions = {
+    "Student": {
+        "sex": "Student's sex",
+        "age": "Student's age",
+        "Medu": "Mother's education level",
+        "Fedu": "Father's education level",
+        "Mjob": "Mother's job",
+        "Fjob": "Father's job",
+        "reason": "Reason to choose this school",
+        "guardian": "Student's guardian",
+        "traveltime": "Travel time to school",
+        "studytime": "Weekly study time",
+        "failures": "Num. of past class failures",
+        "schoolsup": "Extra educational support",
+        "famsup": "Family educational support",
+        "paid": "Extra paid classes within the course subject",
+        'activities': "Extra-curricular activities",
+        "nursery": "Attended nursery school",
+        "higher": "Wants to take higher education",
+        "internet": "Access to internet at home",
+        "romantic": "In a romantic relationship",
+        "famrel": "Quality of family relationships",
+        "freetime": "Free time after school",
+        "goout": "Going out with friends",
+        'Dalc': 'Workday alcohol consumption',
+        'Walc': 'Weekend alcohol consumption',
+        "health": "Current health status",
+        "absences": "Num. of school absences",
+        "Pstatus": "Parent's cohabitation status"
+    },
+    "Compas": {
+        "sex": "Defendant's sex",
+        "age": "Defendant's age",
+        "juv_fel_count": "Num. of juvenile felonies",
+        "juv_misd_count": "Num. of juvenile misdemeanors",
+        "juv_other_count": "Num. of other juvenile offenses",
+        "priors_count": "Num. of prior charges",
+        "age_cat": "Defendant's age category",
+        "race": "Defendant's race",
+        "c_charge_degree": "Degree of the charge",
+        "c_charge_desc": "Description of the charge"
+    },
+    "Heloc": {
+        "AverageMInFile": "Average months in file for all tradelines",
+        "NetFractionInstallBurden": "Net fraction of installment credit to credit limit",
+        "NetFractionRevolvingBurden": "Net fraction of revolving credit to credit limit",
+        "PercentInstallTrades": "Installment trades (%)",
+        "PercentTradesWBalance": "Trades with balance (%)",
+        "NumTotalTrades": "Total number of credit trades",
+        "MSinceMostRecentDelq": "Months since most recent delinquency",
+        "NumSatisfactoryTrades": "Num. of satisfactory credit trades",
+        "PercentTradesNeverDelq": "Trades that have never been delinquent (%)",
+
+        "NumTradesOpeninLast12M": "Num. of trades opened in last 12 months",
+        "MSinceMostRecentTradeOpen": "Months since most recent trade open",
+
+        "ExternalRiskEstimate": "Risk estimate from external source",
+        "MSinceOldestTradeOpen": "Months since oldest trade open",
+        "NumTrades60Ever2DerogPubRec": "Num. of trades 60+ ever 2 derogatory public records",
+        "NumTrades90Ever2DerogPubRec": "Num. of trades 90+ ever 2 derogatory public records",
+        "MaxDelq2PublicRecLast12M": "Max delinquency in 12 months",
+        "MaxDelqEver": "Max delinquency ever",
+        "NumTotalTradesOpenLast12M": "Num. of total trades open in last 12 months",
+        "MSinceMostRecentInqexcl7days": "Months since most recent inquiry excluding 7 days",
+        "NumInqLast6M": "Num. of inquiries in last 6 months",
+        "NumInqLast6Mexcl7days": "Num. of inquiries in last 6 months excluding 7 days",
+
+        "NumRevolvingTradesWBalance": "Num. of revolving trades with balance",
+        "NumInstallTradesWBalance": "Num. of installment trades with balance",
+        "NumBank2NatlTradesWHighUtilization": "Num. of bank/national trades with high utilization",
+    },
+    "Adult": {
+        "age": "Age",
+        "workclass": "Employment status",
+        "sex": "Sex",
+        "Capital Gain": "Capital gain",
+        "Capital Loss": "Capital loss",
+        "hours_per_week": "Hours worked per week",
+        "education": "Education level",
+        "education_num": "Years of Education",
+        "marital_status": "Marital status",
+        "occupation": "Occupation",
+        "relationship": "Relationship status"
+    },
+    "AdultCalifornia": {
+        "age": "Age",
+        "Class of Worker": "Employment status",
+        "sex": "Sex",
+        "Educational Attainment": "Education level",
+        "Marital Status": "Marital status",
+        "Occupation": "Occupation",
+        "Place of Birth": "Place of birth",
+        "Hours Worked per Week": "Hours worked per week",
+    },
+    "AdultLouisiana": {
+        "age": "Age",
+        "Class of Worker": "Employment status",
+        "sex": "Sex",
+        "Educational Attainment": "Education level",
+        "Marital Status": "Marital status",
+        "Occupation": "Occupation",
+        "Place of Birth": "Place of birth",
+        "Hours Worked per Week": "Hours worked per week",
+    },
+    "GermanCredit":{
+        "CreditAmount": "Amount of credit required",
+        'Existing-Account-Status': 'Balance or type of the checking account',
+        'Month-Duration': 'Credit duration in months',
+        'Savings-Account': 'Savings account/bonds',
+        'Present-Employment': 'Duration of present employment',
+        'Instalment-Rate': 'Installment rate in percentage of disposable income',
+        'Sex': 'Sex of applicant',
+        'Guarantors': 'Presence of guarantors',
+        'Residence': 'Duration in present residence',
+        'Property': 'Property ownership',
+        'Age': 'Age of applicant',
+        'Installment': 'Other installment plans',
+        'Housing': 'Housing situation',
+        'Existing-Credits': 'Number of existing credits at this bank',
+        'Job': 'Job status',
+        'Num-People': 'Number of people being liable to provide maintenance for',
+        'Telephone': 'Registered telephone',
+        'Foreign-Worker': 'Whether the applicant is a foreign worker',
+        'Credit-History': 'Past credit behaviour of individual',
+        'Purpose': 'Purpose of credit',
+        'Marital-Status': "Marital status"
+    }
+}
+dataset_one_hot_mapping = {
+    "Student": {
+        "Mjob": {
+            "0": "teacher",
+            "1": "health",
+            "2": "services",
+            "3": "at_home",
+            "4": "other"
+        },
+        "Fjob": {
+            "0": "teacher",
+            "1": "health",
+            "2": "services",
+            "3": "at_home",
+            "4": "other"
+        },
+        "guardian": {
+            "0": "mother",
+            "1": "father",
+            "2": "other"
+        },
+        "reason": {
+            '0': 'course',
+            '1': 'other',
+            '2': 'home',
+            '3': 'reputation'
+        }
+    },
+    "Compas": {
+        "race": {
+            "0": "Other",
+            "1": "African-American",
+            "2": "Caucasian",
+            "3": "Hispanic",
+            "4": "Asian",
+            "5": "Native American"
+        },
+        "age_cat": {
+            "0": "Less than 25",
+            "1": "25-45",
+            "2": "Greater than 45"
+        }
+    },
+    "Adult":{
+        "race": {
+            "0": "White",
+            "1": "Asian-Pac-Islander",
+            "2": "Amer-Indian-Eskimo",
+            "3": "Other",
+            "4": "Black"
+        }
+    },
+    "AdultCalifornia": {
+        "race":{
+            '0': 'White', 
+            '1': 'Black or African American', 
+            '2': 'American Indian', 
+            '3': 'Alaska Native', 
+            '4': 'American Indian or Alaska Native (tribes specified or not)', 
+            '5': 'Asian', 
+            '6': 'Native Hawaiian and Other Pacific Islander', 
+            '7': 'Some Other Race', 
+            '8': 'Two or More Races'
+        }
+    },
+    "AdultLouisiana": {
+        "race":{
+            '0': 'White', 
+            '1': 'Black or African American', 
+            '2': 'American Indian', 
+            '3': 'Alaska Native', 
+            '4': 'American Indian or Alaska Native (tribes specified or not)', 
+            '5': 'Asian', 
+            '6': 'Native Hawaiian and Other Pacific Islander', 
+            '7': 'Some Other Race', 
+            '8': 'Two or More Races'
+        }
+    },
+    "GermanCredit": {
+        'Credit-History': {
+            '0': 'no credits taken/ all credits paid back duly',
+            '1': 'all credits at this bank paid back duly',
+            '2': 'existing credits paid back duly till now',
+            '3': 'delayed in paying off in the past',
+            '4': 'critical account/ other credits existing (not at this bank)',
+        },
+        'Purpose': {
+            '0': 'car (new)',
+            '1': 'car (used)',
+            '2': 'furniture/equipment',
+            '3': 'radio/television',
+            '4': 'domestic appliances',
+            '5': 'repairs',
+            '6': 'education',
+            '7': 'retraining',
+            '8': 'business',
+            '9': 'others',
+        },
+        'Marital-Status': {
+            '0': 'single',
+            '1': 'married',
+            '2': 'divorced',
+            '3': 'other'
+        }
+    }
+}
