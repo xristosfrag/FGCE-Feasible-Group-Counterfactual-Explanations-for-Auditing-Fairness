@@ -553,13 +553,13 @@ def attribution_analysis(datasetName='Adult', epsilon=0.4, group_identifier='sex
         group_ids.append(group_id)
     if per_group_per_subgroup == "per_group":
         actions = generate_recourse_rules(data, results, data.columns, datasetName)
-        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency(data, actions[group_ids[0]])
-        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency(data, actions[group_ids[1]])
+        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency(actions[group_ids[0]])
+        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency(actions[group_ids[1]])
         plot_feature_frequency(datasetName, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0,\
                                 action_frequency_increment_g1, dataset_feature_descriptions, x_axis_size, y_axis_size, freq_threshold=freq_threshold)
     elif per_group_per_subgroup == "per_subgroup":
         actions = generate_recourse_rules_per_wcc(data, results, data.columns, datasetName)
-        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency_per_wcc(data, actions[group_ids[0]])
-        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency_per_wcc(data, actions[group_ids[1]])
+        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency_per_wcc(actions[group_ids[0]])
+        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency_per_wcc(actions[group_ids[1]])
         plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1,  action_frequency_increment_g0, action_frequency_increment_g1,\
                         dataset_feature_descriptions,x_axis_size, y_axis_size, freq_threshold=freq_threshold)
