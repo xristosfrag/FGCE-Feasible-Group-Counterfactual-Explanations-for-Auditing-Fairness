@@ -229,7 +229,54 @@ class FGCE:
 
 		return selected_cfes
 		
-	def dijkstra_like_paths_to_positive_points(self, graph, start_node, positive_points):
+	def mip_selection(self, cfes, k):
+		candidate_keys = list(cfes.keys())
+		num_counterfactuals = len(candidate_keys)
+		index_to_key_cfes = {j: candidate_keys[j] for j in range(num_counterfactuals)}
+		factuals = list({i for cfe in cfes.values() for i in cfe['Covered_recourse_points']})
+		num_factuals = len(factuals)
+		
+		cost_matrix = np.array([
+			[cfes[index_to_key_cfes[j]]['Distance_cost'][factual] 
+			if factual in cfes[index_to_key_cfes[j]]['Distance_cost'] else 0 
+			for j in range(num_counterfactuals)]
+			for factual in factuals
+		])
+		coverage_matrix = np.where(cost_matrix > 0, 1, 0)
+
+		model = LpProblem("Cost_Constrained_FGCE", LpMaximize)
+
+		# Constraint (5): Binary constraint for each candidate and assignment
+		u = {j: LpVariable(f"u_{j}", cat="Binary") for j in range(num_counterfactuals)}
+		r = {(i, j): LpVariable(f"r_{i}_{j}", cat="Binary")
+			for i in range(num_factuals) for j in range(num_counterfactuals)}
+
+		# Objective: maximize total coverage (sum of r over all factuals and candidates with coverage)
+		model += lpSum(r[i, j] for i in range(num_factuals) for j in range(num_counterfactuals) if coverage_matrix[i, j] > 0)
+
+
+		# Constraint (2): Limit the number of selected candidate CFs to at most k
+		model += lpSum(u[j] for j in range(num_counterfactuals)) <= k
+
+		# Constraint (3): Each factual instance is assigned to at most one candidate CF.
+		for i in range(num_factuals):
+			model += lpSum(r[i, j] for j in range(num_counterfactuals)) <= 1
+
+		# Constraint (4): A factual can only be covered by candidate j if candidate j is selected
+		for i in range(num_factuals):
+			for j in range(num_counterfactuals):
+				if coverage_matrix[i, j] > 0:
+					model += r[i, j] <= u[j]
+
+		model.solve(PULP_CBC_CMD(msg=False))
+
+		if LpStatus[model.status] == "Optimal":
+			selected_indices = [j for j in range(num_counterfactuals) if u[j].varValue > 0.5]
+			selected_cfs = [index_to_key_cfes[j] for j in selected_indices]			
+			return {key: cfes[key] for key in selected_cfs}
+		else:
+			print("Solver did not find an optimal solution. Status:", LpStatus[model.status])
+			selected_cfs = {}
 
 	def dijkstra_like_paths_to_positive_points(self, graph, start_node, candidate_cfes):
 		"""
