@@ -42,7 +42,7 @@ def max_possible_distance_in_dataset(datasetName):
     
     return np.sqrt(len(feature_set))
 
-def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value=None, classifier='xgb',\
+def kAUC(datasetName="Student", epsilon=0.5, group_identifier='sex', group_identifier_value=None, classifier='xgb',\
           bandwith_approch="mean_scotts_rule", upper_limit_for_k=10, lower_limit_range_for_d=None, upper_limit_range_for_d=None, steps=10, skip_distance_calculation=True,\
                      skip_fgce_calculation=True, skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64, verbose=False):
     auc_matrix = {}
@@ -50,7 +50,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
     cov_for_saturation_points = {}
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon,\
                 datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch, verbose=verbose,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
                 skip_graph_creation=skip_graph_creation, representation=representation, skip_bandwith_calculation=skip_bandwith_calculation)
@@ -71,15 +71,16 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
         auc_matrix[cfes] = {}
         results = {}
         
-        d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d', min_d=lower_limit_range_for_d)
+        d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d')
         for max_d in d_values:
-            r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+            r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                 max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
             r.pop("Node Connectivity")
             r.pop("Edge Connectivity")
             r.pop("Total coverage")
             r.pop("Graph Stats")
+            r.pop("Time")
             results[max_d] = (r)
 
         group_keys = list(r.keys())
@@ -111,7 +112,7 @@ def kAUC(datasetName="Student", epsilon=0.5, tp=0.5, td=0.001, group_identifier=
     return saturation_points, cov_for_saturation_points, auc_matrix 
 
 
-def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier='sex', group_identifier_value='None', classifier='xgb',\
+def dAUC(datasetName="Student", epsilon=0.7, group_identifier='sex', group_identifier_value='None', classifier='xgb',\
         upper_limit_for_k=10, lower_limit_range_for_d=None, upper_limit_range_for_d=None, steps=10, skip_fgce_calculation=True, skip_model_training=True,\
         skip_distance_calculation=True, skip_bandwith_calculation=True, skip_graph_creation=True, representation=64, bandwith_approch='mean_scotts_rule', verbose=False):
     auc_matrix = {}
@@ -120,7 +121,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
     cov_for_saturation_points = {}
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon,\
                 datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch, verbose=verbose,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
                 skip_graph_creation=skip_graph_creation, representation=representation, skip_bandwith_calculation=skip_bandwith_calculation)
@@ -133,10 +134,9 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         lower_limit_range_for_d = 0.1
     if upper_limit_range_for_d is None:
         upper_limit_range_for_d = np.max(distances) 
-        print(upper_limit_range_for_d)
     elif upper_limit_range_for_d == "max_distance_dataset":
         upper_limit_range_for_d = max_possible_distance_in_dataset(datasetName)
-    d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d', min_d=lower_limit_range_for_d)
+    d_values = nice_numbers(lower_limit_range_for_d, upper_limit_range_for_d, steps, score='d')
 
     k_values =nice_numbers(1, upper_limit_for_k, steps, score='k')
     for d in d_values: 
@@ -144,7 +144,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
         auc_matrix[d] = {}
         results = {}
         for cfes in k_values:
-            r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+            r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                     skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
                                     max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
             
@@ -152,6 +152,7 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
             r.pop("Edge Connectivity")
             r.pop("Total coverage")
             r.pop("Graph Stats")
+            r.pop("Time")
             results[cfes] = (r)
         
         group_keys = list(r.keys())
@@ -182,12 +183,12 @@ def dAUC(datasetName="Student", epsilon=0.7, tp=0.5, td=0.001, group_identifier=
     return saturation_points, cov_for_saturation_points, auc_matrix
 
 def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=None, epsilon=0.5, k_values=None, coverages=None,\
-         tp=0.5, td=0.001, classifier='xgb', bandwith_approch='mean_scotts_rule', skip_model_training=True, skip_distance_calculation=True,\
+         classifier='xgb', bandwith_approch='mean_scotts_rule', skip_model_training=True, skip_distance_calculation=True,\
             skip_graph_creation=True, skip_bandwith_calculation=True, representation=64, verbose=False):
     results = {coverage: {k: None for k in k_values} for coverage in coverages}
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp=tp, td=td,\
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon,\
                 datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch, verbose=verbose,\
                 group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation,\
                 skip_graph_creation=skip_graph_creation, representation=representation, skip_bandwith_calculation=skip_bandwith_calculation)
@@ -198,7 +199,7 @@ def cAUC(datasetName="Student", group_identifier="sex", group_identifier_value=N
 
     for coverage in coverages:
         for k in k_values:
-            results[coverage][k] = main_coverage_constrained_GCFEs_MIP(epsilon=epsilon, tp=0.6, td=0.001, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
+            results[coverage][k] = main_coverage_constrained_GCFEs_MIP(epsilon=epsilon, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=True, skip_graph_creation=True, skip_fgce_calculation=False, skip_distance_calculation=True,
                                 cost_function = "max_vector_distance", k=k, cov=coverage, fgce_init_dict=fgce_init_dict, verbose=verbose)
     
@@ -509,9 +510,10 @@ def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_freq
         fig_size = (sx, sy) 
         plt.gcf().set_size_inches(fig_size)
         plt.barh(sorted_keys_g0, [action_frequency_g0_wcc.get(key, 0) for key in sorted_keys_g0], height=0.3, color='mediumseagreen', align='center')
-        plt.ylabel('Attribute Description', fontsize=12)
-        plt.xlabel('Frequency (%)', fontsize=12)
-        plt.xticks(fontsize=12)
+        plt.ylabel('Attribute Description', fontsize=16)
+        plt.xlabel('Frequency (%)', fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.gca().invert_yaxis()
         plt.grid(axis='x')
         plt.tight_layout()
@@ -526,9 +528,10 @@ def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_freq
         fig_size = (sx, sy) 
         plt.gcf().set_size_inches(fig_size)
         plt.barh(sorted_keys_g1, [action_frequency_g1_wcc.get(key, 0) for key in sorted_keys_g1], height=0.3, color='coral', align='center')
-        plt.ylabel('Attribute Description', fontsize=12)
-        plt.xlabel('Frequency (%)', fontsize=12)
-        plt.xticks(fontsize=12)
+        plt.ylabel('Attribute Description', fontsize=16)
+        plt.xlabel('Frequency (%)', fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.gca().invert_yaxis()
         plt.grid(axis='x')
         plt.tight_layout()
