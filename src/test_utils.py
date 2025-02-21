@@ -322,7 +322,7 @@ def nice_numbers(range_min, range_max, num_ticks, score='k'):
 
     return ticks
 
-def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith_approch="mean_scotts_rule", classifier="xgb",\
+def face_comparison(datasetName="Student", epsilon=3, bandwith_approch="mean_scotts_rule", classifier="xgb",\
                     group_identifier='sex', upper_limit_for_k=10, steps=10, group_identifier_value=None,\
                     skip_model_training=True, skip_bandwith_calculation=True, skip_graph_creation=True, skip_distance_calculation=True,\
                     max_d=1000000000, representation=64, bst=0.1):
@@ -332,7 +332,7 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
     gfce_wij = []
 
     fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-                FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon, tp=tp, td=td,\
+                FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon=epsilon,\
                     datasetName=datasetName, group_identifier=group_identifier, classifier=classifier, bandwith_approch=bandwith_approch,\
                     group_identifier_value=group_identifier_value, skip_model_training=skip_model_training, skip_bandwith_calculation=skip_bandwith_calculation,\
                     skip_graph_creation=skip_graph_creation, skip_distance_calculation=skip_distance_calculation, representation=representation)
@@ -342,11 +342,12 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
                 "edge_connectivity": edge_connectivity, "feasibility_constraints": feasibility_constraints}
 
     k_values = nice_numbers(1, upper_limit_for_k, steps, score='k')
+    face_comparison_results = {}
     for i, cfes in enumerate(k_values):
         print(f"Running for {i}-th time")
 
         results, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances,\
-        face_wij_distances, gfce_wij_distances = main_coverage_constrained_GCFEs(epsilon=epsilon, tp=tp, td=td,
+        face_wij_distances, gfce_wij_distances = main_coverage_constrained_GCFEs(epsilon=epsilon,
                                 datasetName=datasetName, group_identifier=group_identifier,
                                 classifier='xgb', compare_with_Face=True, skip_distance_calculation=skip_distance_calculation,
                                 skip_model_training=skip_model_training, skip_graph_creation=skip_graph_creation, skip_fgce_calculation=False,
@@ -358,7 +359,9 @@ def face_comparison(datasetName="Student", epsilon=3, tp=0.5, td=0.001, bandwith
         gfce_dists.append(gfce_vector_distances)
         face_wij.append(face_wij_distances)
         gfce_wij.append(gfce_wij_distances)
-    return face_dists, gfce_dists, face_wij, gfce_wij
+        face_comparison_results[cfes] = {"face_vector_distances": face_vector_distances, "gfce_vector_distances": gfce_vector_distances,\
+                                         "face_wij_distances": face_wij_distances, "gfce_wij_distances": gfce_wij_distances}
+    return face_comparison_results
 
 def get_graph_stats(epsilon=0.4,\
         datasetName='Adult', group_identifier='sex', group_identifier_value=None, bandwith_approch="mean_scotts_rule", classifier='xgb',\
