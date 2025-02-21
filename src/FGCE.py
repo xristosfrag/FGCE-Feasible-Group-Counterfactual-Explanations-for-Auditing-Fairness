@@ -183,12 +183,12 @@ class FGCE:
 # =========================================================================================================
 # ============================cost-constrained group counterfactuals=======================================
 # =========================================================================================================
-# For the greedy coverage problem, the best solution is to use a BFS in order to find the candidate CFEs before selecting. 
+# For the greedy coverage problem, the best solution is to use a BFS in order to find the candidate CFEs before selecting.
 # However, when using other cost functions like the path cost distance wij, the number of hops of this shortest path, or any 
-# other cost function that is based on the paths, we implemented it using shortest paths from each negative individual to 
-# each positive individual.
+# other cost function that is based on the paths, we implemented it using shortest paths from each factual to 
+# each candidate counterfactual.
 
-	def select_cfes(self, cfes, k=5):
+	def greedy_selection(self, cfes, k=5):
 		"""
 		Greedy algorithm to select the CFES that cover the most uncovered individuals.
 
@@ -230,6 +230,8 @@ class FGCE:
 		return selected_cfes
 		
 	def dijkstra_like_paths_to_positive_points(self, graph, start_node, positive_points):
+
+	def dijkstra_like_paths_to_positive_points(self, graph, start_node, candidate_cfes):
 		"""
 		Computes the shortest paths from the start node to all positive points.
 
@@ -239,7 +241,7 @@ class FGCE:
 			graph
 		- start_node: (int)
 			start node
-		- positive_points: (list)
+		- candidate_cfes: (list)
 			positive class instances
 		
 		# Returns:
@@ -252,14 +254,14 @@ class FGCE:
 		heapq.heappush(pq, (0, 0, start_node, [start_node]))  # Heap elements are tuples of (weight, hops, node, path)
 		visited = set()
 
-		while pq and len(paths) < len(positive_points):
+		while pq and len(paths) < len(candidate_cfes):
 			weight, hops, current_node, path = heapq.heappop(pq)
 
 			if current_node in visited:
 				continue
 			visited.add(current_node)
 
-			if current_node in positive_points:
+			if current_node in candidate_cfes:
 				paths[current_node] = (path, weight)
 
 			for neighbor in graph.neighbors(current_node):
@@ -300,7 +302,7 @@ class FGCE:
 
 		return visited
 
-	def compute_gcfes_greedy(self, subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method="greedy_accross_all_ccs", verbose=False):
+	def compute_gcfes(self, subgroups, candidate_cfes, factuals, max_d, cost_function, k, distances, k_selection_method="accross_all_ccs", verbose=False, cfe_selection_method="greedy"):
 		"""
 		Computes the group CFES for each subgroup.
 
@@ -308,10 +310,10 @@ class FGCE:
 		----------
 		- subgroups: (dict)
 			subgroups
-		- positive_points: (list)
+		- candidate_cfes: (list)
 			positive class instances
-		- FN: (list)
-			false negative class instances
+		- factuals: (list)
+			factual instances
 		- max_d: (float)
 			maximum distance
 		- cost_function: (str)
@@ -327,15 +329,16 @@ class FGCE:
 		----------
 		- gcfes: (dict)
 			group CFES for each subgroup
-		- not_possible_to_cover_fns_group: (dict)
-			false negative class instances that are not possible to cover
+		- not_possible_to_cover_factuals_group: (dict)
+			factual instances that are not possible to cover
 		"""
 		gcfes = {}
 		gcfes['stats'] = {}
-		not_possible_to_cover_fns_group = {}
+		not_possible_to_cover_factuals_group = {}
 		total_ccs_not_applicable = 0
 		total_ccs_applicable = 0
 		ccs_cfes_index = 0
+		time_fgces = 0
 
 		for subgroup_index, subgroup in subgroups.items():
 			connected_components = list(nx.weakly_connected_components(subgroup))
@@ -347,15 +350,15 @@ class FGCE:
 
 			ccs_cfes = {}			
 			ccs_not_applicable = 0
-			not_possible_to_cover_fns_group[subgroup_index] = {}
+			not_possible_to_cover_factuals_group[subgroup_index] = {}
 
 			for connected_component in connected_components:
 				cfes = {}
 				subgraph = subgroup.subgraph(connected_component)
-				positives_in_subgraph = set(connected_component) & set(positive_points)
-				false_negatives_in_subgraph = set(connected_component) & set(FN)
+				candidate_cfes_in_subgraph = set(connected_component) & set(candidate_cfes)
+				factuals_in_subgraph = set(connected_component) & set(factuals)
 
-				if not false_negatives_in_subgraph or not positives_in_subgraph:
+				if not factuals_in_subgraph or not candidate_cfes_in_subgraph:
 					ccs_not_applicable += 1
 					total_ccs_not_applicable += 1
 					ccs_cfes_index += 1
@@ -363,36 +366,38 @@ class FGCE:
 				total_ccs_applicable += 1
 				gcfes['stats'][subgroup_index][ccs_cfes_index] = {}
 				gcfes['stats'][subgroup_index][ccs_cfes_index]['nodes'] = len(connected_component)
-				gcfes['stats'][subgroup_index][ccs_cfes_index]['positives'] = len(positives_in_subgraph)
-				gcfes['stats'][subgroup_index][ccs_cfes_index]['false_negatives'] = len(false_negatives_in_subgraph)
+				gcfes['stats'][subgroup_index][ccs_cfes_index]['candidate_cfes'] = len(candidate_cfes_in_subgraph)
+				gcfes['stats'][subgroup_index][ccs_cfes_index]['factuals'] = len(factuals_in_subgraph)
 				if verbose:
-					print(f"    Nodes in connected component: {len(connected_component)}\n    Positive points: {len(positives_in_subgraph)}\n    False Negative points: {len(false_negatives_in_subgraph)}")
+					print(f"    Nodes in connected component: {len(connected_component)}\n    Candidate Counterfactuals: {len(candidate_cfes_in_subgraph)}\n    Factuals: {len(factuals_in_subgraph)}")
 
-				for false_negative_point in tqdm(false_negatives_in_subgraph, desc='Finding candidate cfes for FNs'):
-					not_possible_to_cover_fns_group[subgroup_index][false_negative_point] = False # Initialize the FN point as not possible to cover
+				for factual in tqdm(factuals_in_subgraph, desc='Finding candidate cfes for Factuals'):
+					not_possible_to_cover_factuals_group[subgroup_index][factual] = False # Initialize the Factual point as not possible to cover
 					if cost_function == "max_vector_distance":
-						visited = self.bfs(subgraph, false_negative_point)
-						visited_positives = visited & positives_in_subgraph
+						visited = self.bfs(subgraph, factual)
+						visited_candidate_cfes = visited & candidate_cfes_in_subgraph
 
-						if visited_positives != set():
-							not_possible_to_cover_fns_group[subgroup_index][false_negative_point] = True
-							for positive_point in visited_positives:
+						if visited_candidate_cfes != set():
+							not_possible_to_cover_factuals_group[subgroup_index][factual] = True
+							for positive_point in visited_candidate_cfes:
 		
-								distance = distances[false_negative_point, positive_point]
+								distance = distances[factual, positive_point]
 							
 								if distance <= max_d:
-									cfes.setdefault(positive_point, {'Covered_recourse_points': [], 'Decision_based_on_this_cost': 0,
-																		'Distance_cost': {}, 'Num_covered': 0})
-									cfes[positive_point]['Covered_recourse_points'].append(false_negative_point)
-									cfes[positive_point]['Decision_based_on_this_cost'] += distance
-									cfes[positive_point]['Distance_cost'][false_negative_point] = distance
-									cfes[positive_point]['Num_covered'] += 1
-									cfes[positive_point]['cc'] = ccs_cfes_index
+									if positive_point not in cfes:
+										cfes[positive_point] = {'Covered_recourse_points': [factual], 'Decision_based_on_this_cost': distance,
+																'Distance_cost': {factual: distance}, 'Num_covered': 1, 'cc': ccs_cfes_index}
+									elif factual not in cfes[positive_point]['Covered_recourse_points']:
+										cfes[positive_point]['Covered_recourse_points'].append(factual)
+										cfes[positive_point]['Decision_based_on_this_cost'] += distance
+										cfes[positive_point]['Distance_cost'][factual] = distance
+										cfes[positive_point]['Num_covered'] += 1
+										cfes[positive_point]['cc'] = ccs_cfes_index
 
 					else:
-						paths = self.dijkstra_like_paths_to_positive_points(subgraph, false_negative_point, positives_in_subgraph)
+						paths = self.dijkstra_like_paths_to_positive_points(subgraph, factual, candidate_cfes_in_subgraph)
 						if paths != {}:
-							not_possible_to_cover_fns_group[subgroup_index][false_negative_point] = True
+							not_possible_to_cover_factuals_group[subgroup_index][factual] = True
 
 						for positive_point, (path, weight) in paths.items():
 							path_cost_dist = sum([subgraph[path[i]][path[i + 1]]['distance'] for i in range(len(path) - 1)])
@@ -409,21 +414,30 @@ class FGCE:
 									reachable_point = True
 							
 							if reachable_point:
-								cfes.setdefault(positive_point, {'Covered_recourse_points': [], 'Decision_based_on_this_cost': 0,
-																'Shortest_path_cost': {}, 'Shortest_paths_distance_cost': {}, "Path": {}, 'Num_covered': 0})
-								cfes[positive_point]['Covered_recourse_points'].append(false_negative_point)
-								cfes[positive_point]['Decision_based_on_this_cost'] += decision_based_on_this_cost
-								cfes[positive_point]['Shortest_path_cost'][false_negative_point] = weight
-								cfes[positive_point]['Shortest_paths_distance_cost'][false_negative_point] = path_cost_dist
-								cfes[positive_point]['Path'][false_negative_point] = path
-								cfes[positive_point]['Num_covered'] += 1
-								cfes[positive_point]['cc'] = ccs_cfes_index
+								if positive_point not in cfes:
+									cfes[positive_point] = {'Covered_recourse_points': [factual], 'Decision_based_on_this_cost': decision_based_on_this_cost,
+															'Shortest_path_cost': {factual: weight}, 'Shortest_paths_distance_cost': {factual: path_cost_dist},
+															'Path': {factual: path}, 'Num_covered': 1, 'cc': ccs_cfes_index}
+								elif factual not in cfes[positive_point]['Covered_recourse_points']:
+									cfes[positive_point]['Covered_recourse_points'].append(factual)
+									cfes[positive_point]['Decision_based_on_this_cost'] += decision_based_on_this_cost
+									cfes[positive_point]['Shortest_path_cost'][factual] = weight
+									cfes[positive_point]['Shortest_paths_distance_cost'][factual] = path_cost_dist
+									cfes[positive_point]['Path'][factual] = path
+									cfes[positive_point]['Num_covered'] += 1
+									cfes[positive_point]['cc'] = ccs_cfes_index
 
-				if k_selection_method == "greedy_accross_all_ccs":
+				if k_selection_method == "accross_all_ccs":
 					ccs_cfes.update(cfes)
 
 				if k_selection_method == "same_k_for_all_ccs":
-					ccs_cfes[ccs_cfes_index] = self.select_cfes(cfes, k)
+					start_time = time.time()
+					if cfe_selection_method == 'greedy':
+						ccs_cfes[ccs_cfes_index] = self.greedy_selection(cfes, k)
+					elif cfe_selection_method =="mip":
+						ccs_cfes[ccs_cfes_index] = self.mip_selection(cfes, k)
+					time_fgces = time.time() - start_time
+
 
 				ccs_cfes_index += 1
 
@@ -433,8 +447,13 @@ class FGCE:
 					print(f"Total applicable connected components for group: {len(connected_components) - ccs_not_applicable}")
 			gcfes['stats'][subgroup_index]['not_applicable_ccs'] = ccs_not_applicable
 
-			if k_selection_method == "greedy_accross_all_ccs":
-				ccs_cfes = self.select_cfes(ccs_cfes, k)
+			if k_selection_method == "accross_all_ccs":
+				start_time = time.time()
+				if cfe_selection_method == 'greedy':
+					ccs_cfes = self.greedy_selection(ccs_cfes, k)
+				elif cfe_selection_method =="mip":
+					ccs_cfes = self.mip_selection(ccs_cfes, k)
+				time_fgces = time.time() - start_time
 				if verbose:
 					print(f"Number of CFEs needed: {len(ccs_cfes)}")
 
@@ -455,9 +474,9 @@ class FGCE:
 				if verbose:
 					print(f"Number of CFEs needed: {cfes_needed}")
 
-		return gcfes, not_possible_to_cover_fns_group
+		return gcfes, not_possible_to_cover_factuals_group, time_fgces
 	
-	def apply_cfes(self, gcfes, FN_negatives_by_group, distances, not_possible_to_cover_fns_group, k_selection_method="greedy_accross_all_ccs", cost_function="max_vector_distance", stats=None, binary_implementation=False, verbose=False):
+	def apply_cfes(self, gcfes, FN_negatives_by_group, distances, not_possible_to_cover_factuals_group, k_selection_method="accross_all_ccs", cost_function="max_vector_distance", stats=None, binary_implementation=False, verbose=False):
 		"""
 		Applies the group CFES to the data and generates the results.
 
@@ -466,11 +485,11 @@ class FGCE:
 		- gcfes: (dict)
 			group CFES for each subgroup
 		- FN_negatives_by_group: (dict)
-			false negative class instances by group
+			factual instances by group
 		- distances: (dict)
 			distances between instances
-		- not_possible_to_cover_fns_group: (dict)
-			false negative class instances that are not possible to cover
+		- not_possible_to_cover_factuals_group: (dict)
+			factual instances that are not possible to cover
 		- k_selection_method: (str)
 			the method to use to select the CFES
 		- cost_function: (str)
@@ -489,7 +508,7 @@ class FGCE:
 		- graph_stats: (dict)
 			graph statistics
 		- fns_div_for_both_groups: (int)
-			number of false negative class instances
+			number of factual instances
 		"""
 		results = {}
 		totalcoverage = set()
@@ -511,7 +530,7 @@ class FGCE:
 			results[group]['Avg. path cost'] = 0
 			results[group]['Median path cost'] = 0
 
-			if k_selection_method == "greedy_accross_all_ccs":
+			if k_selection_method == "accross_all_ccs":
 				for cfe in gcfes[group]:
 					print(f"Group {group} - CFE: {cfe} - Covered Points: {len(gcfes[group][cfe]['Covered_recourse_points'])}")
 					for point in gcfes[group][cfe]['Covered_recourse_points']:
@@ -574,7 +593,7 @@ class FGCE:
 							
 							else:
 								results[group][point]['Vector_distance'] = dist
-								results[group][point]['cfe_cc'] = gcfes[group][cfe]['cc']								
+								results[group][point]['cfe_cc'] = gcfes[group][cfe]['cc']					
 			elif k_selection_method == "same_k_for_all_ccs" and not binary_implementation:
 				for cc in gcfes[group]:
 					for cfe in gcfes[group][cc]:
@@ -708,16 +727,16 @@ class FGCE:
 										results[group][point]['Vector_distance'] = dist
 										results[group][point]['cfe_cc'] = gcfes[group][cc][key][cfe]['cc']
 		
-			not_possible_to_cover = set([point for point in not_possible_to_cover_fns_group[group] if not_possible_to_cover_fns_group[group][point] == False])
-			possible_to_cover_points = set([point for point in not_possible_to_cover_fns_group[group] if not_possible_to_cover_fns_group[group][point] == True])
-			false_negatives_covered_covered_points_for_group = set(covered_points_for_group) & possible_to_cover_points
-			totalcoverage.update(false_negatives_covered_covered_points_for_group)
+			not_possible_to_cover = set([point for point in not_possible_to_cover_factuals_group[group] if not_possible_to_cover_factuals_group[group][point] == False])
+			possible_to_cover_points = set([point for point in not_possible_to_cover_factuals_group[group] if not_possible_to_cover_factuals_group[group][point] == True])
+			factuals_covered_points_for_group = set(covered_points_for_group) & possible_to_cover_points
+			totalcoverage.update(factuals_covered_points_for_group)
 			fns_div = len(possible_to_cover_points)
 			fns_div_for_both_groups += fns_div
 			if fns_div == 0:
 				coverage = 0
 			else:
-				coverage = (len(false_negatives_covered_covered_points_for_group)/fns_div)*100
+				coverage = (len(factuals_covered_points_for_group)/fns_div)*100
 			results[group]['Coverage'] = coverage
 
 			distance_values = list(distances_for_group.values())
@@ -764,7 +783,7 @@ class FGCE:
 # ============================coverage-constrained group counterfactuals=======================================
 # =============================================================================================================
 # =============================================================================================================
-	def get_candidate_cfes(self, G, false_negatives_in_subgraph, positives_in_subgraph, max_d, cost_function, distances, ccs_cfes_index):
+	def get_candidate_cfes(self, G, factuals_in_subgraph, candidate_cfes_in_subgraph, max_d, cost_function, distances, ccs_cfes_index):
 		"""
 		Returns a dictionary of candidate cfes for a given subgroup.
 
@@ -772,9 +791,9 @@ class FGCE:
 		----------
 		- G: (networkx.Graph)
 			subgraph
-		- false_negatives_in_subgraph: (list)
-			false negative class instances
-		- positives_in_subgraph: (list)	
+		- factuals_in_subgraph: (list)
+			factual instances
+		- candidate_cfes_in_subgraph: (list)	
 			positive class instances
 		- max_d: (float)
 			maximum value of d
@@ -789,35 +808,35 @@ class FGCE:
 		----------
 		- cfes: (dict)
 			candidate cfes
-		- not_possible_to_cover_fns: (set)
-			false negative class instances that are not possible to cover 
+		- not_possible_to_cover_factuals: (set)
+			factual instances that are not possible to cover 
 		"""
-		not_possible_to_cover_fns = {}
+		not_possible_to_cover_factuals = {}
 		cfes = {}
 
-		for false_negative_point in false_negatives_in_subgraph:
-			not_possible_to_cover_fns[false_negative_point] = False
+		for factual in factuals_in_subgraph:
+			not_possible_to_cover_factuals[factual] = False
 
 			if cost_function == "max_vector_distance":
-				visited = self.bfs(G, false_negative_point)
-				visited_positives = visited & positives_in_subgraph
+				visited = self.bfs(G, factual)
+				visited_candidate_cfes = visited & candidate_cfes_in_subgraph
 
-				if visited_positives != set():
-					not_possible_to_cover_fns[false_negative_point] = True
-					for positive_point in visited_positives:
-						distance = distances[false_negative_point, positive_point]
+				if visited_candidate_cfes != set():
+					not_possible_to_cover_factuals[factual] = True
+					for positive_point in visited_candidate_cfes:
+						distance = distances[factual, positive_point]
 						if distance <= max_d:
 							cfes.setdefault(positive_point, {'Covered_recourse_points': [], 'Decision_based_on_this_cost': 0,
 																'Distance_cost': {}, 'Num_covered': 0})
-							cfes[positive_point]['Covered_recourse_points'].append(false_negative_point)
+							cfes[positive_point]['Covered_recourse_points'].append(factual)
 							cfes[positive_point]['Decision_based_on_this_cost'] += distance
-							cfes[positive_point]['Distance_cost'][false_negative_point] = distance
+							cfes[positive_point]['Distance_cost'][factual] = distance
 							cfes[positive_point]['Num_covered'] += 1
 							cfes[positive_point]['cc'] = ccs_cfes_index
 			else:
-				paths = self.dijkstra_like_paths_to_positive_points(G, false_negative_point, positives_in_subgraph)
+				paths = self.dijkstra_like_paths_to_positive_points(G, factual, candidate_cfes_in_subgraph)
 				if paths != {}:
-					not_possible_to_cover_fns[false_negative_point] = True
+					not_possible_to_cover_factuals[factual] = True
 
 				for positive_point, (path, weight) in paths.items():
 					path_cost_dist = sum([G[path[i]][path[i + 1]]['distance'] for i in range(len(path) - 1)])
@@ -836,16 +855,16 @@ class FGCE:
 					if reachable_point:
 						cfes.setdefault(positive_point, {'Covered_recourse_points': [], 'Decision_based_on_this_cost': 0,
 														'Shortest_path_cost': {}, 'Shortest_paths_distance_cost': {}, "Path": {}, 'Num_covered': 0})
-						cfes[positive_point]['Covered_recourse_points'].append(false_negative_point)
+						cfes[positive_point]['Covered_recourse_points'].append(factual)
 						cfes[positive_point]['Decision_based_on_this_cost'] += decision_based_on_this_cost
-						cfes[positive_point]['Shortest_path_cost'][false_negative_point] = weight
-						cfes[positive_point]['Shortest_paths_distance_cost'][false_negative_point] = path_cost_dist
-						cfes[positive_point]['Path'][false_negative_point] = path
+						cfes[positive_point]['Shortest_path_cost'][factual] = weight
+						cfes[positive_point]['Shortest_paths_distance_cost'][factual] = path_cost_dist
+						cfes[positive_point]['Path'][factual] = path
 						cfes[positive_point]['Num_covered'] += 1
 						cfes[positive_point]['cc'] = ccs_cfes_index
-		return cfes, not_possible_to_cover_fns
+		return cfes, not_possible_to_cover_factuals
 
-	def binary_search_for_d(self, G, false_negatives, positives, k, min_d, max_d, bst, cost_function, distances, ccs_cfes_index, find_k0=True):
+	def binary_search_for_d(self, G, factuals, candidate_cfes, k, min_d, max_d, bst, cost_function, distances, ccs_cfes_index, find_k0=True):
 		"""
 		Performs a binary search for the optimal value of d.
 
@@ -853,9 +872,9 @@ class FGCE:
 		----------
 		- G: (networkx.Graph)
 			subgraph
-		- false_negatives: (list)
-			false negative class instances
-		- positives: (list)
+		- factuals: (list)
+			factual instances
+		- candidate_cfes: (list)
 			positive class instances
 		- k: (int)
 			number of cfes to be returned
@@ -881,48 +900,48 @@ class FGCE:
 		"""
 		optimal_d = max_d
 		optimal_coverage = -1
-		not_possible_to_cover_fns = {}
+		not_possible_to_cover_factuals = {}
 		selected_cfes = {}
 		min_selected_cfes = float('inf')
 
 		while max_d - min_d > bst:
 			mid_d = (min_d + max_d) / 2
 
-			cfes, notc = self.get_candidate_cfes(G, false_negatives, positives, mid_d, cost_function, distances, ccs_cfes_index)
-			current_selected_cfes = self.select_cfes(cfes, k)
+			cfes, notc = self.get_candidate_cfes(G, factuals, candidate_cfes, mid_d, cost_function, distances, ccs_cfes_index)
+			current_selected_cfes = self.greedy_selection(cfes, k)
 
 			covered_negatives = set()
 			for cfe_index, _ in current_selected_cfes.items():
 				covered_negatives.update(current_selected_cfes[cfe_index]['Covered_recourse_points'])
 
-			uncovered_negatives = set(false_negatives) - covered_negatives
+			uncovered_negatives = set(factuals) - covered_negatives
 			not_possible_to_cover_fns_for_state = set([point for point in notc if notc[point] == False])
 			
-			current_coverage = len(false_negatives) - len(uncovered_negatives)
+			current_coverage = len(factuals) - len(uncovered_negatives)
 			if current_coverage > optimal_coverage or (current_coverage == optimal_coverage and mid_d < optimal_d):
 				if min_selected_cfes >= len(current_selected_cfes) and find_k0:
 					min_selected_cfes = len(current_selected_cfes)
 					k = min_selected_cfes
 					optimal_coverage = current_coverage
 					optimal_d = mid_d
-					not_possible_to_cover_fns = notc
+					not_possible_to_cover_factuals = notc
 					selected_cfes = current_selected_cfes
 				else:
 					optimal_coverage = current_coverage
 					optimal_d = mid_d
-					not_possible_to_cover_fns = notc
+					not_possible_to_cover_factuals = notc
 					selected_cfes = current_selected_cfes
 		
-			possible_to_cover_points = set(false_negatives) - not_possible_to_cover_fns_for_state
+			possible_to_cover_points = set(factuals) - not_possible_to_cover_fns_for_state
 			if possible_to_cover_points == covered_negatives:
 				max_d = mid_d
 			else:
 				min_d = mid_d
 		print(f"			# {len(selected_cfes)} CFEs for the {ccs_cfes_index} cc")
 
-		return optimal_d, selected_cfes, not_possible_to_cover_fns
+		return optimal_d, selected_cfes, not_possible_to_cover_factuals
 	
-	def compute_gcfes_binary(self, subgroups, positive_points, FN, k, min_d, max_d, bst, cost_function, distances, find_k0):
+	def compute_gcfes_binary(self, subgroups, candidate_cfes, factuals, k, min_d, max_d, bst, cost_function, distances, find_k0):
 		"""
 		Computes the group CFES for each subgroup.
 
@@ -930,10 +949,10 @@ class FGCE:
 		----------
 		- subgroups: (dict)
 			Subgroups of the graph
-		- positive_points: (list)
+		- candidate_cfes: (list)
 			Positive class instances
-		- FN: (list)
-			False negative class instances
+		- factuals: (list)
+			Instances under explanation
 		- k: (int)
 			The maximum number of CFES to return
 		- min_d: (float)
@@ -953,14 +972,14 @@ class FGCE:
 			Group CFES for each subgroup
 		- gcfes_with_ccs: (dict)
 			Group CFES for each subgroup with connected components
-		- not_possible_to_cover_fns_group: (dict)
-			False negative class instances that are not possible to cover
+		- not_possible_to_cover_factuals_group: (dict)
+			Instances under explanation that are not possible to cover
 		"""
 		gcfes = {}
 		gcfes['stats'] = {}
 		gcfes_with_ccs = {}
 		total_ccs_not_applicable = 0
-		not_possible_to_cover_fns_group = {}
+		not_possible_to_cover_factuals_group = {}
 
 		ccs_cfes_index = 0
 		
@@ -968,7 +987,7 @@ class FGCE:
 			connected_components = list(nx.weakly_connected_components(subgroup))
 			gcfes[subgroup_index] = {}
 			gcfes_with_ccs[subgroup_index] = {}
-			not_possible_to_cover_fns_group[subgroup_index] = {}
+			not_possible_to_cover_factuals_group[subgroup_index] = {}
 
 			gcfes['stats'][subgroup_index] = {}
 			gcfes['stats'][subgroup_index]['nodes'] = len(subgroup)
@@ -982,10 +1001,10 @@ class FGCE:
 				subgraph = subgroup.subgraph(connected_component)
 			
 				subgraph = subgroup.subgraph(connected_component)
-				positives_in_subgraph = set(connected_component) & set(positive_points)
-				false_negatives_in_subgraph = set(connected_component) & set(FN)
+				candidate_cfes_in_subgraph = set(connected_component) & set(candidate_cfes)
+				factuals_in_subgraph = set(connected_component) & set(factuals)
 
-				if not false_negatives_in_subgraph or not positives_in_subgraph:
+				if not factuals_in_subgraph or not candidate_cfes_in_subgraph:
 					ccs_not_applicable += 1
 					total_ccs_not_applicable += 1
 					ccs_cfes_index += 1
@@ -993,15 +1012,15 @@ class FGCE:
 			
 				gcfes['stats'][subgroup_index][ccs_cfes_index] = {}
 				gcfes['stats'][subgroup_index][ccs_cfes_index]['nodes'] = len(connected_component)
-				gcfes['stats'][subgroup_index][ccs_cfes_index]['positives'] = len(positives_in_subgraph)
-				gcfes['stats'][subgroup_index][ccs_cfes_index]['false_negatives'] = len(false_negatives_in_subgraph)
-				print(f"    Nodes in connected component: {len(connected_component)}\n    Positive points: {len(positives_in_subgraph)}\n    False Negative points: {len(false_negatives_in_subgraph)}")
+				gcfes['stats'][subgroup_index][ccs_cfes_index]['candidate_cfes'] = len(candidate_cfes_in_subgraph)
+				gcfes['stats'][subgroup_index][ccs_cfes_index]['factuals'] = len(factuals_in_subgraph)
+				print(f"    Nodes in connected component: {len(connected_component)}\n    Candidate cfes: {len(candidate_cfes_in_subgraph)}\n    Factuals: {len(factuals_in_subgraph)}")
 
-				optimal_d, selected_cfes, not_possible_to_cover_fns = self.binary_search_for_d(subgraph, false_negatives_in_subgraph, positives_in_subgraph, k, min_d, max_d, bst, cost_function, distances, ccs_cfes_index, find_k0)
+				optimal_d, selected_cfes, not_possible_to_cover_factuals = self.binary_search_for_d(subgraph, factuals_in_subgraph, candidate_cfes_in_subgraph, k, min_d, max_d, bst, cost_function, distances, ccs_cfes_index, find_k0)
 				print(f"	Optimal d for subgraph: {optimal_d}")
 
-				for point, value in not_possible_to_cover_fns.items():
-					not_possible_to_cover_fns_group[subgroup_index][point] = value
+				for point, value in not_possible_to_cover_factuals.items():
+					not_possible_to_cover_factuals_group[subgroup_index][point] = value
 
 				ccs_cfes[ccs_cfes_index] = {}
 				ccs_cfes[ccs_cfes_index]['optimal_d'] = optimal_d
@@ -1024,16 +1043,16 @@ class FGCE:
 		if total_ccs_not_applicable > 0:
 			print(f"Total not applicable connected components: {total_ccs_not_applicable}")
 
-		return gcfes, gcfes_with_ccs, not_possible_to_cover_fns_group
+		return gcfes, gcfes_with_ccs, not_possible_to_cover_factuals_group
 
 # ====================================================================================================
 # ====================================================================================================
 # ============================coverage-constrained group counterfactuals MIPS=========================
 # ====================================================================================================
 # ====================================================================================================
-	def preprocess_connected_components(self, subgroup, connected_components, FN, positive_points):
+	def preprocess_connected_components(self, subgroup, connected_components, factuals, candidate_cfes):
 		"""
-		Preprocesses connected components to filter out those without both false negatives and positives that can be used.
+		Preprocesses connected components to filter out those without both factuals and candidate counterfactuals that can be used.
 
 		# Parameters:
 		----------
@@ -1041,67 +1060,67 @@ class FGCE:
 			Subgroup graph.
 		- connected_components: (list) 
 			List of connected components.
-		- FN: (list)
-			List of indices of false negative points.
-		- positive_points: (list)
+		- factuals: (list)
+			List of indices of factuals.
+		- candidate_cfes: (list)
 			List of indices of positive points.
 
 		# Returns:
 		- connected_components_to_use: (list)
-			List of connected components to use, filtered to contain only those with both false negatives and positives.
+			List of connected components to use, filtered to contain only those with both factuals and positives.
 		- node_to_cc: (dict)
 			Mapping from node index to connected component index.
-		- false_points_with_path_per_group: (list)
-			List of false points with path per group.
+		- factuals_with_path_per_group: (list)
+			List of factuals with path per group.
 		- positive_points_with_path_per_group: (list)
 			List of positive points with path per group.
-		- FN_positive_per_cc: (dict)
-			Mapping from connected component index to lists of false negative and positive points.
+		- factuals_positives_per_cc: (dict)
+			Mapping from connected component index to lists of factuals and positive points.
 		- positives_per_negative: (dict)
-			Mapping from false negative point to associated positive points.
+			Mapping from factual point to associated cfes.
 		"""
 		connected_components_to_use = []
 		node_to_cc = {}
-		false_points_with_path_per_group = []
+		factuals_with_path_per_group = []
 		positive_points_with_path_per_group = []
-		FN_positive_per_cc = {}
+		factuals_positives_per_cc = {}
 		positives_per_negative = {}
 		index=0
 
 		for connected_component in connected_components:
 			positive_points_with_path = set()
-			false_points_with_path = set()
+			factuals_with_path = set()
 			subgraph = subgroup.subgraph(connected_component)
 			
-			positives_in_subgraph = set(connected_component) & set(positive_points)
-			false_negatives_in_subgraph = set(connected_component) & set(FN)
+			candidate_cfes_in_subgraph = set(connected_component) & set(candidate_cfes)
+			factuals_in_subgraph = set(connected_component) & set(factuals)
 			
-			if false_negatives_in_subgraph and positives_in_subgraph:
-				for fn in false_negatives_in_subgraph:	
+			if factuals_in_subgraph and candidate_cfes_in_subgraph:
+				for fn in factuals_in_subgraph:	
 					visited_nodes = self.bfs(subgraph, fn)
 					if len(visited_nodes) > 0:
-						pos = set(visited_nodes) & set(positive_points)
+						pos = set(visited_nodes) & set(candidate_cfes)
 						if len(pos) > 0:			 
-							false_points_with_path.add(fn)
+							factuals_with_path.add(fn)
 							positive_points_with_path.update(pos)
 							positives_per_negative[fn] = pos
 
-			if len(false_points_with_path) > 0 and len(positive_points_with_path) > 0:
+			if len(factuals_with_path) > 0 and len(positive_points_with_path) > 0:
 				connected_components_to_use.append(connected_component)
-				print(f"False points with path to at least one positive point = {len(false_points_with_path)}")
-				print(f"Positive points with path to at least one false negative point = {len(positive_points_with_path)}")
-				false_points_with_path_lst = list(false_points_with_path)
+				print(f"Factuals with path to at least one positive point = {len(factuals_with_path)}")
+				print(f"Positive points with path to at least one factual = {len(positive_points_with_path)}")
+				factuals_with_path_lst = list(factuals_with_path)
 				positive_points_with_path_lst = list(positive_points_with_path)
-				false_points_with_path_per_group += false_points_with_path_lst
+				factuals_with_path_per_group += factuals_with_path_lst
 				positive_points_with_path_per_group += positive_points_with_path_lst
-				all_points = false_points_with_path_lst + positive_points_with_path_lst
+				all_points = factuals_with_path_lst + positive_points_with_path_lst
 				node_to_cc.update({i: index for i in all_points})
-				FN_positive_per_cc[index] = [false_points_with_path_lst,positive_points_with_path_lst]
+				factuals_positives_per_cc[index] = [factuals_with_path_lst,positive_points_with_path_lst]
 				index+=1
 
-		return connected_components_to_use, node_to_cc, false_points_with_path_per_group, positive_points_with_path_per_group, FN_positive_per_cc,positives_per_negative
+		return connected_components_to_use, node_to_cc, factuals_with_path_per_group, positive_points_with_path_per_group, factuals_positives_per_cc,positives_per_negative
 	
-	def get_gcfes_approach_integer_prog_local(self, subgroups, distances, positive_points, FN):
+	def get_gcfes_approach_integer_prog_local(self, subgroups, distances, candidate_cfes, factuals):
 		"""
 		Perform the GCFES approach using integer programming locally per connected component.
 
@@ -1110,10 +1129,10 @@ class FGCE:
 			Dictionary of subgroups represented as networkx.Graph objects.
 		- distances: (dict)
 			Dictionary containing distances between points.
-		- positive_points: (list)
+		- candidate_cfes: (list)
 			List of indices of positive points.
-		- FN: (list)
-			List of indices of false negative points.
+		- factuals: (list)
+			List of indices of instances under explanation.
 
 		# Returns:
 		- gcfes: (dict)
@@ -1124,17 +1143,17 @@ class FGCE:
 			Dictionary of appropriate k per component per subgroup to achieve full coverage.
 		- results: (dict) 
 			Dictionary containing max cost per subgroup.
-		- positives_per_negative_per_group: (dict)
-			Dictionary containing positive points per false negative point per subgroup.
-		- FN_positive_per_cc: (dict)
-			Dictionary containing FN-positive pairs.
+		- candidate_cfes_per_factuals_per_group: (dict)
+			Dictionary containing positive points per factual point per subgroup.
+		- factuals_positives_per_cc: (dict)
+			Dictionary containing factuals-positive pairs.
 		"""
 		results = {}
 		k_per_component_per_group = {}
 		valid_connected_components_per_subgroup = {}
 		gcfes = {}
-		positives_per_negative_per_group = {}
-		FN_positive_per_cc_for_global = {}
+		candidate_cfes_per_factuals_per_group = {}
+		factual_positive_per_cc_for_global = {}
 
 		for subgroup_index, subgroup in subgroups.items():
 			max_cost_over_ccs = 0
@@ -1147,10 +1166,10 @@ class FGCE:
 			connected_components = list(nx.weakly_connected_components(subgroup))
 			
 			 
-			connected_components_to_use, _, _, _, FN_positive_per_cc, positives_per_negative = self.preprocess_connected_components(subgroup, connected_components, FN, positive_points)
-			FN_positive_per_cc_for_global[subgroup_index] = FN_positive_per_cc
+			connected_components_to_use, _, _, _, factuals_positives_per_cc, positives_per_negative = self.preprocess_connected_components(subgroup, connected_components, factuals, candidate_cfes)
+			factual_positive_per_cc_for_global[subgroup_index] = factuals_positives_per_cc
 
-			positives_per_negative_per_group[subgroup_index] = positives_per_negative
+			candidate_cfes_per_factuals_per_group[subgroup_index] = positives_per_negative
 			valid_connected_components_per_subgroup[subgroup_index] = connected_components_to_use
 			k_per_component = {component: 1 for component in range(len(connected_components_to_use))}
 
@@ -1162,31 +1181,31 @@ class FGCE:
 				coverage_percent = 0
 				while coverage_percent < 1.0:
 					k += 1
-					positives_in_subgraph = set(connected_component) & set(positive_points)
-					false_negatives_in_subgraph = set(connected_component) & set(FN)
-					if false_negatives_in_subgraph and positives_in_subgraph:
-						false_points_with_path = FN_positive_per_cc[idx][0]
-						positive_points_with_path = FN_positive_per_cc[idx][1]
+					candidate_cfes_in_subgraph = set(connected_component) & set(candidate_cfes)
+					factuals_in_subgraph = set(connected_component) & set(factuals)
+					if factuals_in_subgraph and candidate_cfes_in_subgraph:
+						factuals_with_path = factuals_positives_per_cc[idx][0]
+						positive_points_with_path = factuals_positives_per_cc[idx][1]
 						vector_distances = []
 						counter = 0
-						for false_negative_point in false_points_with_path:
-							positive_points_connected = positives_per_negative[false_negative_point]
-							dist_per_false_negative_point = []
+						for factual in factuals_with_path:
+							positive_points_connected = positives_per_negative[factual]
+							dist_per_factual = []
 							for positive_point in positive_points_with_path:
 								if positive_point in positive_points_connected:
 									counter += 1
-									dist = distances[false_negative_point][positive_point]
-									dist_per_false_negative_point.append(dist)
+									dist = distances[factual][positive_point]
+									dist_per_factual.append(dist)
 								else:
-									dist_per_false_negative_point.append(100)
-							vector_distances.append(dist_per_false_negative_point)
+									dist_per_factual.append(100)
+							vector_distances.append(dist_per_factual)
 
-						gcfes_cc, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(false_points_with_path, positive_points_with_path, vector_distances, k, 1)
+						gcfes_cc, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(factuals_with_path, positive_points_with_path, vector_distances, k, 1)
 						if max_cost > max_cost_over_ccs:
 							max_cost_over_ccs = max_cost
 
 						gcfes[subgroup_index].update(gcfes_cc)
-						coverage_percent = coverage / len(false_points_with_path)
+						coverage_percent = coverage / len(factuals_with_path)
 						results_per_connected_component[idx]["Coverage"] = coverage_percent
 						results_per_connected_component[idx]["Cost"] = max_cost
 						k_per_component[idx] = k
@@ -1198,9 +1217,9 @@ class FGCE:
 			results[subgroup_index] = {'Total Coverage': total_coverage_per_group, 'Total Cost': results_per_connected_component[component_with_max_cost]["Cost"], 'Components': results_per_connected_component}
 			print(f"Group {subgroup_index}: K per component for coverage = {k_per_component}. Max cost = {max_cost_over_ccs}. Total k used = {sum(value for value in k_per_component.values())}")
 		
-		return gcfes, results, valid_connected_components_per_subgroup, k_per_component_per_group, positives_per_negative_per_group, FN_positive_per_cc_for_global
+		return gcfes, results, valid_connected_components_per_subgroup, k_per_component_per_group, candidate_cfes_per_factuals_per_group, factual_positive_per_cc_for_global
 					
-	def get_gcfes_approach_integer_prog_global_via_local(self, subgroups, distances, positive_points, FN, k, cost_function):
+	def get_gcfes_approach_integer_prog_global_via_local(self, subgroups, distances, candidate_cfes, factuals, k, cost_function):
 		"""
 		Perform the GCFES approach using integer programming globally by leveraging the local approach for full coverage.
 		Computes the group CFES using integer programming approach for each subgroup sharing k according to the maximum cost across connencted components.
@@ -1210,10 +1229,10 @@ class FGCE:
 			Dictionary containing subgroups as keys and their corresponding graphs as values.
 		- distances: (dict)
 			Dictionary containing pairwise distances between points in the dataset.
-		- positive_points: (list)
+		- candidate_cfes: (list)
 			List of indices of positive points.
-		- FN: (list)
-			List of indices of false negative points.
+		- factuals: (list)
+			List of indices of factuals.
 		- k: (int)
 			Maximum number of cfe points
 
@@ -1226,7 +1245,7 @@ class FGCE:
 		 
 		results = {}
 		gcfes = {}
-		gcfes, results, valid_connected_components_per_subgroup, k_for_coverage, positives_per_negative_per_group, FN_positive_per_cc_for_global = self.get_gcfes_approach_integer_prog_local(subgroups, distances, positive_points, FN, cost_function)
+		gcfes, results, valid_connected_components_per_subgroup, k_for_coverage, candidate_cfes_per_factuals_per_group, factual_positive_per_cc_for_global = self.get_gcfes_approach_integer_prog_local(subgroups, distances, candidate_cfes, factuals, cost_function)
 
 
 		for subgroup_index, _ in subgroups.items():
@@ -1247,27 +1266,27 @@ class FGCE:
 				coverage_percent = 0
 				connected_component = connected_components_to_use[0]
 			
-				positives_in_subgraph = set(connected_component) & set(positive_points)
-				false_negatives_in_subgraph = set(connected_component) & set(FN)
+				candidate_cfes_in_subgraph = set(connected_component) & set(candidate_cfes)
+				factuals_in_subgraph = set(connected_component) & set(factuals)
 
-				if false_negatives_in_subgraph and positives_in_subgraph:
-					false_points_with_path = FN_positive_per_cc_for_global[subgroup_index][0][0]
-					positive_points_with_path = FN_positive_per_cc_for_global[subgroup_index][0][1]
+				if factuals_in_subgraph and candidate_cfes_in_subgraph:
+					factuals_with_path = factual_positive_per_cc_for_global[subgroup_index][0][0]
+					positive_points_with_path = factual_positive_per_cc_for_global[subgroup_index][0][1]
 					vector_distances = []
 					
-					for false_negative_point in false_points_with_path:
-						dist_per_false_negative_point = []
-						positive_points_connected = set(positives_per_negative_per_group[subgroup_index][false_negative_point])
+					for factual in factuals_with_path:
+						dist_per_factual = []
+						positive_points_connected = set(candidate_cfes_per_factuals_per_group[subgroup_index][factual])
 						for positive_point in positive_points_with_path:						
 							if positive_point in positive_points_connected:
-								dist = distances[false_negative_point][positive_point]
-								dist_per_false_negative_point.append(dist)
+								dist = distances[factual][positive_point]
+								dist_per_factual.append(dist)
 							else:
-								dist_per_false_negative_point.append(100)	
-						vector_distances.append(dist_per_false_negative_point)	
+								dist_per_factual.append(100)	
+						vector_distances.append(dist_per_factual)	
 
-					gcfes, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(false_points_with_path, positive_points_with_path, vector_distances, k, 1)
-					coverage_percent = coverage/ len(false_points_with_path)
+					gcfes, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(factuals_with_path, positive_points_with_path, vector_distances, k, 1)
+					coverage_percent = coverage/ len(factuals_with_path)
 					
 					
 					results_per_connected_component[0]["Coverage"] = coverage_percent
@@ -1277,29 +1296,29 @@ class FGCE:
 			else:
 				while k_current <= k:		
 					for idx, connected_component in enumerate(connected_components_to_use):
-						positives_in_subgraph = set(connected_component) & set(positive_points)
-						false_negatives_in_subgraph = set(connected_component) & set(FN)
+						candidate_cfes_in_subgraph = set(connected_component) & set(candidate_cfes)
+						factuals_in_subgraph = set(connected_component) & set(factuals)
 
-						if false_negatives_in_subgraph and positives_in_subgraph:
-							false_points_with_path = FN_positive_per_cc_for_global[subgroup_index][idx][0]
-							positive_points_with_path = FN_positive_per_cc_for_global[subgroup_index][idx][1]				
+						if factuals_in_subgraph and candidate_cfes_in_subgraph:
+							factuals_with_path = factual_positive_per_cc_for_global[subgroup_index][idx][0]
+							positive_points_with_path = factual_positive_per_cc_for_global[subgroup_index][idx][1]				
 							vector_distances = []
 
-							for false_negative_point in false_points_with_path:
-								dist_per_false_negative_point = []
-								positive_points_connected = set(positives_per_negative_per_group[subgroup_index][false_negative_point])
+							for factual in factuals_with_path:
+								dist_per_factual = []
+								positive_points_connected = set(candidate_cfes_per_factuals_per_group[subgroup_index][factual])
 								for positive_point in positive_points_with_path:
 									if positive_point in positive_points_connected:
-										dist = distances[false_negative_point][positive_point]
-										dist_per_false_negative_point.append(dist)
+										dist = distances[factual][positive_point]
+										dist_per_factual.append(dist)
 									else:
-										dist_per_false_negative_point.append(100)	
-								vector_distances.append(dist_per_false_negative_point)		
+										dist_per_factual.append(100)	
+								vector_distances.append(dist_per_factual)		
 						
-							gcfes_cc, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(false_points_with_path, positive_points_with_path, vector_distances, k_per_component[idx], 1)
+							gcfes_cc, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(factuals_with_path, positive_points_with_path, vector_distances, k_per_component[idx], 1)
 							gcfes[subgroup_index].update(gcfes_cc)
 							results_per_connected_component[idx]["Cost"] = max_cost
-							results_per_connected_component[idx]["Coverage"] = coverage/ len(false_points_with_path)
+							results_per_connected_component[idx]["Coverage"] = coverage/ len(factuals_with_path)
 					components_not_covered = [key for key, value in results_per_connected_component.items() if value['Coverage'] < 1.0]
 
 					if len(components_not_covered) > 0:
@@ -1322,7 +1341,7 @@ class FGCE:
 
 		return 	gcfes, results
 
-	def get_gcfes_approach_integer_prog_global(self, subgroups, distances, positive_points, FN, k, coverage_percentage):
+	def get_gcfes_approach_integer_prog_global(self, subgroups, distances, candidate_cfes, factuals, k, coverage_percentage):
 		"""
 		Perform the GCFES approach using integer programming globally per subgroup.
 
@@ -1332,10 +1351,10 @@ class FGCE:
 			Dictionary containing subgroups as keys and their corresponding graphs as values.
 		- distances: (dict) 
 			Dictionary containing pairwise distances between points in the dataset.
-		- positive_points: (list)
+		- candidate_cfes: (list)
 			List of indices of positive points.
-		- FN: (list) 
-			List of indices of false negative points.
+		- factuals: (list) 
+			List of indices of factuals.
 		- k: (int)
 			Maximum number of cfe points to return
 		- coverage_percentage: (float) 
@@ -1351,47 +1370,47 @@ class FGCE:
 		for _, subgroup in subgroups.items():
 			print(f"Group {idx}")
 			connected_components = list(nx.weakly_connected_components(subgroup))
-			_, node_to_cc, false_points_with_path_per_group, positive_points_with_path_per_group, _, positives_per_negative = self.preprocess_connected_components(subgroup, connected_components, FN, positive_points)
+			_, node_to_cc, factuals_with_path_per_group, positive_points_with_path_per_group, _, positives_per_negative = self.preprocess_connected_components(subgroup, connected_components, factuals, candidate_cfes)
 			gcfes[idx] = {}
 			subgroup_nodes = list(subgroup.nodes())
-			positives_in_subgraph = set(subgroup_nodes) & set(positive_points)
-			false_negatives_in_subgraph = set(subgroup_nodes) & set(FN)
-			if false_negatives_in_subgraph and positives_in_subgraph:
-				false_points_with_path = false_points_with_path_per_group
+			candidate_cfes_in_subgraph = set(subgroup_nodes) & set(candidate_cfes)
+			factuals_in_subgraph = set(subgroup_nodes) & set(factuals)
+			if factuals_in_subgraph and candidate_cfes_in_subgraph:
+				factuals_with_path = factuals_with_path_per_group
 				positive_points_with_path = positive_points_with_path_per_group		
 				vector_distances = []
-				for false_negative_point in false_points_with_path:
-					dist_per_false_negative_point = []
-					positive_points_connected = positives_per_negative[false_negative_point]
+				for factual in factuals_with_path:
+					dist_per_factual = []
+					positive_points_connected = positives_per_negative[factual]
 					for positive_point in positive_points_with_path:
-						if node_to_cc[false_negative_point] == node_to_cc[positive_point]:
+						if node_to_cc[factual] == node_to_cc[positive_point]:
 							if positive_point in positive_points_connected:
-								dist = distances[false_negative_point][positive_point]
-								dist_per_false_negative_point.append(dist)
+								dist = distances[factual][positive_point]
+								dist_per_factual.append(dist)
 							else:
-								dist_per_false_negative_point.append(100)	
+								dist_per_factual.append(100)	
 						else:
-							dist_per_false_negative_point.append(100)	
-					vector_distances.append(dist_per_false_negative_point)		
-				gcfes_cc, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(false_points_with_path, positive_points_with_path, vector_distances, k, coverage_percentage)
+							dist_per_factual.append(100)	
+					vector_distances.append(dist_per_factual)		
+				gcfes_cc, max_cost, _, coverage = self.select_cfes_mixed_integer_programming(factuals_with_path, positive_points_with_path, vector_distances, k, coverage_percentage)
 				gcfes[idx].update(gcfes_cc)
-			results[idx] = {'Total Coverage': coverage/ len(false_points_with_path), 'Total Cost':max_cost}
-			print(f"Group {idx}: CFEs used = {k}. Max cost = {max_cost}. Coverage = {coverage/len(false_points_with_path)}")	
+			results[idx] = {'Total Coverage': coverage/ len(factuals_with_path), 'Total Cost':max_cost}
+			print(f"Group {idx}: CFEs used = {k}. Max cost = {max_cost}. Coverage = {coverage/len(factuals_with_path)}")	
 			idx += 1
 		return 	gcfes, results
 	
-	def select_cfes_mixed_integer_programming(self, FN, positives, cost, k, coverage_percentage):
+	def select_cfes_mixed_integer_programming(self, factuals, positives, cost, k, coverage_percentage):
 		"""
 		Selects the CFES using mixed integer programming
 
 		# Parameters:
 		----------
-		- FN: (list) 
-			list of false negative points
+		- factuals: (list) 
+			list of factuals
 		- positives: (list) 
 			List of positive points
 		- distances: (dict)
-			Dictionary with distances among false negatives and positives
+			Dictionary with distances among factuals and positives
 		- k (dict): 
 			Maximum number of cfe points
 		- coverage_percentage: (float)
@@ -1406,7 +1425,7 @@ class FGCE:
 			Number of negative points that are covered
 		"""
 		l = 100
-		m = len(FN) 
+		m = len(factuals) 
 		n = len(positives) 
 		prob = LpProblem("p-center", LpMinimize)
 		x = LpVariable.dicts("x", [(i,j) for i in range(m) for j in range(n) if cost[i][j] != l], 0, 1, LpBinary)
@@ -1443,9 +1462,9 @@ class FGCE:
 					for i in range(m):
 						if cost[i][j] != l :					 
 							if x[(i,j)].value() > 0.5:
-								gcfes[FN[i]] = positives[j]
+								gcfes[factuals[i]] = positives[j]
 								dist = cost[i][j]
-								print(f"- FN {FN[i]} is covered with cost = {dist}")
+								print(f"- factuals {factuals[i]} is covered with cost = {dist}")
 								coverage += 1
 								if dist > max_dist:
 									max_dist = dist
