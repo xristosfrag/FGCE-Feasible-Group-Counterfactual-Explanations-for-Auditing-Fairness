@@ -40,7 +40,7 @@ FGCE_DIR = get_FGCE_Directory()
 sys.path.append(FGCE_DIR)
 sep = get_path_separator()
 
-def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
+def initialize_FGCE(epsilon=3,datasetName='Student',
 	group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", group_identifier_value=None, 
 	skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
 	skip_bandwith_calculation=True, representation=64, verbose=True):
@@ -51,8 +51,6 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 	----------------
 	- epsilon: (float)
 		margin for creating connections in graphs
-	-tp: (float)
-		Prediction threshold
 	- datasetName: (str)
 		name of the dataset
 	- group_identifier: (str)
@@ -359,12 +357,12 @@ def initialize_FGCE(epsilon=3, tp=0.6, td=0.001, datasetName='Student',
 #                 		 					cost-constrained group counterfactuals
 # =====================================================================================================================
 # =====================================================================================================================
-def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
+def main_cost_constrained_GCFEs(epsilon=3, datasetName='Student',
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule",
-					k=5, max_d = 1, cost_function = "max_vector_distance", k_selection_method="greedy_accross_all_ccs", 
-					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True, 
+					k=5, max_d = 1, cost_function = "max_vector_distance", k_selection_method="accross_all_ccs",
+					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
 					skip_bandwith_calculation=True,  skip_fgce_calculation=True, compare_with_Face=False, representation=64,
-     				fgce_init_dict=None, verbose=False):
+     				fgce_init_dict=None, verbose=False, cfe_selection_method='greedy'):
 	"""
 	This function is used to solve the cost-constrained group counterfactuals problem using the greedy coverage algorithm
 
@@ -372,8 +370,6 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	----------------
 	- epsilon: (float)
 		margin for creating connections in graphs
-	-tp: (float)
-		Prediction threshold
 	- datasetName: (str)
 		name of the dataset
 	- group_identifier: (str)
@@ -436,7 +432,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 			  fgce_init_dict["edge_connectivity"], fgce_init_dict["feasibility_constraints"]
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
 					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation, verbose=verbose)
 	# =========================================================================================================================
 	# 												GROUP CFES
@@ -453,18 +449,18 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 	if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs"):
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs")
 
-	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_d_{max_d_store}_kmethod_{k_selection_method}.json"
+	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}cost_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_k_{k}_cost_function_{cost_function}_d_{max_d_store}_kmethod_{k_selection_method}.json"
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
 		return results, data, data_np, attr_col_mapping, data_df_copy, [], [], 0, 0
 	else:
 		start_time = time.time()
 		subgroups = utils.get_subgraphs_by_group(graph, data_np, data, attr_col_mapping, group_identifier, normalized_group_identifer_value, numeric_columns)
-		print(f"\n{len(subgroups)} subgroups created based on group identifier: {group_identifier}")		
+		print(f"\n{len(subgroups)} subgroups created based on group identifier: {group_identifier}")
 		
 		if verbose:
 			print(f"Computing group cfes...")
-		gcfes, not_possible_to_cover_fns_group = fgce.compute_gcfes_greedy(subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method, verbose=verbose)
+		gcfes, not_possible_to_cover_fns_group, time_gcfes = fgce.compute_gcfes(subgroups, positive_points, FN, max_d, cost_function, k, distances, k_selection_method, verbose=verbose, cfe_selection_method=cfe_selection_method)
 
 		stats = {}
 		stats["Node Connectivity"] = node_connectivity
@@ -482,6 +478,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 
 		end_time = time.time()
 		execution_time = end_time - start_time
+		results['Time'] = time_gcfes
 		if verbose:
 			print("Group Cfes - Time:", execution_time, "seconds")
 
@@ -516,7 +513,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 		fn_points_found = 0
 
 		## create individual recourses for each Fn point for each group
-		if k_selection_method == "greedy_accross_all_ccs":
+		if k_selection_method == "accross_all_ccs":
 			for key in results:
 				if key in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]: continue
 
@@ -582,7 +579,7 @@ def main_cost_constrained_GCFEs(epsilon=3, tp=0.6, td=0.001, datasetName='Studen
 #                 		 					coverage-constrained group counterfactuals
 # =====================================================================================================================
 # =====================================================================================================================
-def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='Student', group_identifier='sex',
+def main_coverage_constrained_GCFEs(epsilon=0.2, datasetName='Student', group_identifier='sex',
 					classifier="lr", cost_function="max_path_cost", k=2,
 					min_d=0, max_d=2, bst=1e-3, bandwith_approch="mean_scotts_rule",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
@@ -594,8 +591,6 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 	----------------
 	- epsilon: (float)
 		margin for creating connections in graphs
-	-tp: (float)
-		Prediction threshold
 	- datasetName: (str)
 		name of the dataset
 	- group_identifier: (str)
@@ -655,7 +650,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 			  fgce_init_dict["edge_connectivity"], fgce_init_dict["feasibility_constraints"]
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
 					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation)
 	# =========================================================================================================================
 	# 												GROUP CFES
@@ -678,7 +673,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 	if not os.path.exists(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs"):
 		os.makedirs(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs")
 
-	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cost_function_{cost_function}_max_d_store_{max_d_store}_min_d_store_{min_d_store}_bst_{bst_store}.json"
+	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}results_{datasetName}_eps{epsilon}_k_{k}_cost_function_{cost_function}_max_d_store_{max_d_store}_min_d_store_{min_d_store}_bst_{bst_store}.json"
 	
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
@@ -814,7 +809,7 @@ def main_coverage_constrained_GCFEs(epsilon=0.2, tp=0.6, td=0.001, datasetName='
 # =====================================================================================================================
 #                 		 					coverage-constrained group counterfactuals-MIP
 # =====================================================================================================================
-def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName='Student', 
+def main_coverage_constrained_GCFEs_MIP(epsilon=3, datasetName='Student', 
 					group_identifier='sex', classifier="lr", bandwith_approch="mean_scotts_rule", k=5, cost_function = "max_vector_distance",
 					group_identifier_value=None, skip_model_training=True, skip_distance_calculation=True, skip_graph_creation=True,
 					skip_fgce_calculation=False,  skip_bandwith_calculation=True, cov_constr_approach="local", cov = 1,  representation=64, fgce_init_dict=None):
@@ -825,8 +820,6 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 	----------------
 	- epsilon: (float)
 		margin for creating connections in graphs
-	-tp: (float)
-		Prediction threshold
 	- datasetName: (str)
 		name of the dataset
 	- group_identifier: (str)	
@@ -867,14 +860,14 @@ def main_coverage_constrained_GCFEs_MIP(epsilon=3, tp=0.6, td=0.001, datasetName
 			  fgce_init_dict["edge_connectivity"], fgce_init_dict["feasibility_constraints"]
 	else:
 		fgce, graph, distances, data, data_np, data_df_copy, attr_col_mapping, normalized_group_identifer_value, numeric_columns, positive_points,\
-			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, tp, td, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
+			  FN, FN_negatives_by_group, node_connectivity, edge_connectivity, feasibility_constraints  = initialize_FGCE(epsilon, datasetName, group_identifier, classifier, bandwith_approch, group_identifier_value, 
 					skip_model_training, skip_distance_calculation, skip_graph_creation, skip_bandwith_calculation, representation)
 	# =========================================================================================================================
 	# 												GROUP CFES
 	# =========================================================================================================================
 	results = {}	
-	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}{cov_constr_approach}{sep}stats{sep}results_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cov_{cov}_cost_function_{cost_function}.json"
-	gcfes_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}{cov_constr_approach}{sep}gcfes{sep}gcfes_{datasetName}_eps{epsilon}_tp{tp}_k_{k}_cov_{cov}_cost_function_{cost_function}.json"
+	file_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}{cov_constr_approach}{sep}stats{sep}results_{datasetName}_eps{epsilon}_k_{k}_cov_{cov}_cost_function_{cost_function}.json"
+	gcfes_path = f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}coverage_constrained_GCFEs{sep}{cov_constr_approach}{sep}gcfes{sep}gcfes_{datasetName}_eps{epsilon}_k_{k}_cov_{cov}_cost_function_{cost_function}.json"
 	
 	if skip_fgce_calculation and os.path.exists(file_path):
 		results = json.load(open(file_path, "r"))
