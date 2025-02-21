@@ -331,6 +331,8 @@ class FGCE:
 			group CFES for each subgroup
 		- not_possible_to_cover_factuals_group: (dict)
 			factual instances that are not possible to cover
+		- time_fgces: (float)
+			time taken to compute the group CFES
 		"""
 		gcfes = {}
 		gcfes['stats'] = {}
