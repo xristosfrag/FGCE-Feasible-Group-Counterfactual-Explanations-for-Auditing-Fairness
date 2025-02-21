@@ -257,30 +257,27 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
     fig_legend.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/{datasetName}_legend.pdf")
     plt.show()
     
-def nice_numbers(range_min, range_max, num_ticks, score='k', min_d=0.1):
+def nice_numbers(range_min, range_max, num_ticks, score='k'):
     """
-    Calculate "nice" numbers for the given range and number of ticks.
+    Generate "nice" numbers for a given range.
 
     Parameters
     ----------
     range_min : float
-        The minimum value of the range.
+        The minimum value of the range
     range_max : float
-        The maximum value of the range.
+        The maximum value of the range
     num_ticks : int
-        The number of ticks to generate.
+        The number of ticks to generate
     score : str
-        The score type ('k' or 'd'). Default is 'k'.
-
+        The score type ('k' or 'd')
     Returns
     -------
     ticks : numpy.ndarray
-        An array of "nice" numbers
+        An array of "nice" numbers for the given range.
     """
-    # Calculate the range
     range_size = range_max - range_min
 
-    # Calculate the approximate tick spacing
     tick_spacing = range_size / (num_ticks - 1)
 
     # Find a "nice" number for the tick spacing
@@ -298,22 +295,30 @@ def nice_numbers(range_min, range_max, num_ticks, score='k', min_d=0.1):
 
     nice_tick_spacing = nice_fraction * 10**exponent
 
-    # Calculate the start and end points
-    min_tick = np.ceil(range_min / nice_tick_spacing) * nice_tick_spacing
-    max_tick = np.ceil(range_max / nice_tick_spacing) * nice_tick_spacing
-
-    # Generate the ticks
-    ticks = np.arange(min_tick, max_tick + nice_tick_spacing, nice_tick_spacing)
-
     if score == 'k':
+        min_tick = np.ceil(range_min / nice_tick_spacing) * nice_tick_spacing
+        max_tick = np.ceil(range_max / nice_tick_spacing) * nice_tick_spacing
+
+        ticks = np.arange(min_tick, max_tick + nice_tick_spacing, nice_tick_spacing)
+
         while len(ticks) != num_ticks:
             ticks = nice_numbers(range_min, range_max+1, num_ticks)
-    elif score == 'd' and min_d>0.1:
-        while len(ticks) != num_ticks:
-            ticks = nice_numbers(range_min-0.1, range_max, num_ticks)    
-    elif score == 'd':
-        while len(ticks) != num_ticks:
-            ticks = nice_numbers(range_min, range_max+0.1, num_ticks)
+
+    if score == 'd':
+        # Adjust the tick spacing to be smaller for 'd' but still within a reasonable range
+        nice_tick_spacing = max(range_min, nice_tick_spacing / 2)
+
+        min_tick = np.round(range_min / nice_tick_spacing) * nice_tick_spacing
+        max_tick = np.round(range_max / nice_tick_spacing) * nice_tick_spacing
+
+        ticks = np.linspace(min_tick, max_tick, num_ticks)
+
+        # Ensure ticks are within bounds
+        if ticks[0] < range_min:
+            ticks += (range_min - ticks[0])
+        if ticks[-1] > range_max:
+            ticks -= (ticks[-1] - range_max)
+        ticks = np.round(ticks, 2)
 
     return ticks
 
