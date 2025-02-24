@@ -510,6 +510,7 @@ def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_freq
         fig_size = (sx, sy) 
         plt.gcf().set_size_inches(fig_size)
         plt.barh(sorted_keys_g0, [action_frequency_g0_wcc.get(key, 0) for key in sorted_keys_g0], height=0.3, color='mediumseagreen', align='center')
+        plt.yticks(range(len(sorted_keys_g0)), [dataset_feature_descriptions[datasetName].get(key, key) for key in sorted_keys_g0], fontsize=16)
         plt.ylabel('Attribute Description', fontsize=16)
         plt.xlabel('Frequency (%)', fontsize=16)
         plt.xticks(fontsize=16)
@@ -528,6 +529,7 @@ def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_freq
         fig_size = (sx, sy) 
         plt.gcf().set_size_inches(fig_size)
         plt.barh(sorted_keys_g1, [action_frequency_g1_wcc.get(key, 0) for key in sorted_keys_g1], height=0.3, color='coral', align='center')
+        plt.yticks(range(len(sorted_keys_g1)), [dataset_feature_descriptions[datasetName].get(key, key) for key in sorted_keys_g1], fontsize=16)
         plt.ylabel('Attribute Description', fontsize=16)
         plt.xlabel('Frequency (%)', fontsize=16)
         plt.xticks(fontsize=16)
@@ -549,6 +551,7 @@ def attribution_analysis(datasetName='Adult', epsilon=0.4, group_identifier='sex
             skip_model_training=skip_model_training, skip_distance_calculation=skip_distance_calculation, skip_bandwith_calculation=skip_bandwith_calculation,\
               skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation, bandwith_approch=bandwith_approch,\
             max_d = max_d, cost_function = cost_function, k=k, k_selection_method=k_selection_method, verbose=verbose)
+    data = data.iloc[:, :-1]
     group_ids = []
     for group_id, _ in results.items():
         if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]:
