@@ -211,7 +211,7 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
 
     return data, data_np, X, FEATURE_COLUMNS, TARGET_COLUMNS, kernel, model
 
-def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_d):
+def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_d, k_values):
     plt.rcParams['axes.titlesize'] = 16
     plt.rcParams['axes.labelsize'] = 16
     plt.rcParams['xtick.labelsize'] = 16
@@ -226,9 +226,9 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
 
     ax1.plot(x_values, face_wij, '-o', color='green', label="Face Wij Distance", alpha=0.7)
     ax1.plot(x_values_offset, gfce_wij, '-o', color='red', label="FGCE Wij Distance", alpha=0.7)
-    ax1.set_xlabel("k")
     ax1.set_ylabel("Avg Wij Distance")
-    ax1.set_xticks(range(1, len(face_wij)+1))
+    ax1.set_xticks(range(1, len(k_values) + 1))
+    ax1.set_xticklabels([int(k) for k in k_values])
 
     ax2 = ax1.twinx()
 
@@ -346,8 +346,8 @@ def face_comparison(datasetName="Student", epsilon=3, bandwith_approch="mean_sco
     for i, cfes in enumerate(k_values):
         print(f"Running for {i}-th time")
 
-        results, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances,\
-        face_wij_distances, gfce_wij_distances = main_coverage_constrained_GCFEs(epsilon=epsilon,
+        results, data, data_np, attr_col_mapping, data_df_copy, face_vector_distances, gfce_vector_distances,\
+              face_wij_distances, gfce_wij_distances = main_coverage_constrained_GCFEs(epsilon=epsilon,
                                 datasetName=datasetName, group_identifier=group_identifier,
                                 classifier='xgb', compare_with_Face=True, skip_distance_calculation=skip_distance_calculation,
                                 skip_model_training=skip_model_training, skip_graph_creation=skip_graph_creation, skip_fgce_calculation=False,
