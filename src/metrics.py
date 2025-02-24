@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from main import main_cost_constrained_GCFEs, main_coverage_constrained_GCFEs_MIP
-from test_utils import nice_numbers
+from test_utils import nice_numbers, dataset_feature_descriptions
 from main import *
 
 def find_saturation_point_and_max_d(total_costs, k_values):
@@ -344,7 +344,7 @@ def generate_recourse_rules_per_wcc(dataframe, results, FEATURE_COLUMNS, dataset
         aWCCs_per_group[group_id] = aWCCs
     
     for group_id, group_stats in results.items():
-        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]:
+        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats", "Time"]:
             continue
         total_action_for_group = {}
         for fn_id, cfe_details in group_stats.items():
@@ -389,7 +389,7 @@ def generate_recourse_rules(dataframe, results, FEATURE_COLUMNS, datasetName):
     group_actions = {}
     
     for group_id, group_stats in results.items():
-        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats"]: 
+        if group_id in ["Node Connectivity", "Edge Connectivity", "Total coverage", "Graph Stats", "Time"]: 
             continue
 
         total_action_for_group = []
@@ -475,7 +475,7 @@ def sort_actions_by_frequency(actions_for_group):
     action_frequency_increment = dict(sorted(action_frequency_increment.items(), key=lambda item: item[1], reverse=True))
     return action_frequency, action_frequency_increment
 
-def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0, action_frequency_increment_g1, dataset_feature_descriptions, sx, sy, freq_threshold=None):
+def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g1, sx, sy, freq_threshold=None):
     filtered_keys_g0 = set(key for key, value in action_frequency_g0.items() if freq_threshold is None or value > freq_threshold)
     filtered_keys_g1 = set(key for key, value in action_frequency_g1.items() if freq_threshold is None or value > freq_threshold)
     filtered_keys = filtered_keys_g0.union(filtered_keys_g1)
@@ -486,8 +486,8 @@ def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g
     y_combined = range(len(sorted_keys))                 
     bar_width = 0.3
 
-    plt.barh(y_combined, [action_frequency_g0.get(key, 0) for key in sorted_keys], height=bar_width, color='r', align='center')
-    plt.barh([y + bar_width for y in y_combined], [action_frequency_g1.get(key, 0) for key in sorted_keys], height=bar_width, color='g', align='center')
+    plt.barh(y_combined, [action_frequency_g0.get(key, 0) for key in sorted_keys], height=bar_width, color='mediumseagreen', align='center')
+    plt.barh([y + bar_width for y in y_combined], [action_frequency_g1.get(key, 0) for key in sorted_keys], height=bar_width, color='coral', align='center')
     plt.ylabel('Attribute Description', fontsize=12)
     plt.xlabel('Frequency (%)', fontsize=12)
     plt.legend(['Group 0', 'Group 1'])
@@ -501,7 +501,7 @@ def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g
     plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{dataset_name}{sep}figs{sep}attribution.pdf")
     plt.show()
 
-def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0, action_frequency_increment_g1, dataset_feature_descriptions, sx, sy, freq_threshold=None):
+def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1, sx, sy, freq_threshold=None):
     for wcc, action_frequency_g0_wcc in action_frequency_g0.items():
         print(f"WCC: {wcc}")
         filtered_keys_g0 = set(key for key, value in action_frequency_g0_wcc.items() if freq_threshold is None or value > freq_threshold)
@@ -541,7 +541,7 @@ def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_freq
 def attribution_analysis(datasetName='Adult', epsilon=0.4, group_identifier='sex', group_identifier_value=None,\
         classifier="xgb", skip_model_training=True, bandwith_approch="mean_scotts_rule", skip_bandwith_calculation=True,\
         max_d=1.05, cost_function="max_vector_distance", skip_distance_calculation=True, skip_graph_creation=True,\
-        k=12, k_selection_method="greedy_accross_all_ccs", skip_fgce_calculation=True, verbose=False,\
+        k=12, k_selection_method="accross_all_ccs", skip_fgce_calculation=True, verbose=False,\
         per_group_per_subgroup="per_group", freq_threshold=50, x_axis_size=8, y_axis_size=6):
 
     results, data, _, _, _, _, _, _,_ = \
@@ -556,13 +556,10 @@ def attribution_analysis(datasetName='Adult', epsilon=0.4, group_identifier='sex
         group_ids.append(group_id)
     if per_group_per_subgroup == "per_group":
         actions = generate_recourse_rules(data, results, data.columns, datasetName)
-        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency(actions[group_ids[0]])
-        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency(actions[group_ids[1]])
-        plot_feature_frequency(datasetName, action_frequency_g0, action_frequency_g1, action_frequency_increment_g0,\
-                                action_frequency_increment_g1, dataset_feature_descriptions, x_axis_size, y_axis_size, freq_threshold=freq_threshold)
+        action_frequency_g0, _ = sort_actions_by_frequency(actions[group_ids[0]])
+        action_frequency_g1, _ = sort_actions_by_frequency(actions[group_ids[1]])
     elif per_group_per_subgroup == "per_subgroup":
         actions = generate_recourse_rules_per_wcc(data, results, data.columns, datasetName)
-        action_frequency_g0, action_frequency_increment_g0 = sort_actions_by_frequency_per_wcc(actions[group_ids[0]])
-        action_frequency_g1, action_frequency_increment_g1 = sort_actions_by_frequency_per_wcc(actions[group_ids[1]])
-        plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1,  action_frequency_increment_g0, action_frequency_increment_g1,\
-                        dataset_feature_descriptions,x_axis_size, y_axis_size, freq_threshold=freq_threshold)
+        action_frequency_g0, _ = sort_actions_by_frequency_per_wcc(actions[group_ids[0]])
+        action_frequency_g1, _ = sort_actions_by_frequency_per_wcc(actions[group_ids[1]])
+    return action_frequency_g0, action_frequency_g1
