@@ -219,21 +219,25 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
     plt.rcParams['legend.fontsize'] = 16
     fig, ax1 = plt.subplots()
 
-    # Adjust the x values slightly to avoid overlap
-    x_values = range(1, len(face_wij)+1)
-    x_values_offset = [x + 0.1 for x in x_values]
-    x_values_offset2 = [x + 0.2 for x in x_values]
+    x_values = np.arange(1, len(face_wij) + 1)
+    x_values_offset = x_values + 0.15
+    x_values_offset2 = x_values + 0.15
 
-    ax1.plot(x_values, face_wij, '-o', color='green', label="Face Wij Distance", alpha=0.7)
-    ax1.plot(x_values_offset, gfce_wij, '-o', color='red', label="FGCE Wij Distance", alpha=0.7)
+    ax1.plot(x_values, face_wij, '--o', color='green', label="Face Wij Distance", markersize=6, alpha=0.9, linewidth=2)
+    ax1.plot(x_values_offset, gfce_wij, '--o', color='red', label="FGCE Wij Distance", markersize=6, alpha=0.9, linewidth=2)
     ax1.set_ylabel("Avg Wij Distance")
-    ax1.set_xticks(range(1, len(k_values) + 1))
+    ax1.set_xticks(x_values)
     ax1.set_xticklabels([int(k) for k in k_values])
+    ax1.set_xlabel("k")
+    ax1.set_yscale('log')
+
+    # Adjust log-scale limits to ensure differences are visible
+    ax1.set_ylim([min(min(face_wij), min(gfce_wij)) * 0.9, max(max(face_wij), max(gfce_wij)) * 1.1])
 
     ax2 = ax1.twinx()
 
-    ax2.plot(x_values, face_dists, '-o', color='blue', label="Face Vector Distances", alpha=0.7)
-    ax2.plot(x_values_offset2, gfce_dists, '-o', color='purple', label="FGCE Vector Distances", alpha=0.7)
+    ax2.plot(x_values, face_dists, '-o', color='blue', label="Face Vector Distances", markersize=6, alpha=0.9, linewidth=2)
+    ax2.plot(x_values_offset2, gfce_dists, '-o', color='purple', label="FGCE Vector Distances", markersize=6, alpha=0.9, linewidth=2)
     ax2.set_ylabel("Avg Vector Distance")
 
     # Combine legends from both axes

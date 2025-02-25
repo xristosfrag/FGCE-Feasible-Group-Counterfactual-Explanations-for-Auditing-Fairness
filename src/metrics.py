@@ -75,7 +75,7 @@ def kAUC(datasetName="Student", epsilon=0.5, group_identifier='sex', group_ident
         for max_d in d_values:
             r = filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                 skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
-                                max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
+                                max_d = max_d, cost_function = "max_vector_distance", k=cfes, k_selection_method="accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys)
             r.pop("Node Connectivity")
             r.pop("Edge Connectivity")
             r.pop("Total coverage")
@@ -146,7 +146,7 @@ def dAUC(datasetName="Student", epsilon=0.7, group_identifier='sex', group_ident
         for cfes in k_values:
             r = (filter_subdict(main_cost_constrained_GCFEs(epsilon=epsilon, datasetName=datasetName, group_identifier=group_identifier, group_identifier_value=group_identifier_value,
                                     skip_model_training=skip_model_training, skip_fgce_calculation=skip_fgce_calculation, skip_graph_creation=skip_graph_creation,
-                                    max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="greedy_accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
+                                    max_d = d, cost_function = "max_vector_distance", k=cfes, k_selection_method="accross_all_ccs", fgce_init_dict=fgce_init_dict)[0], allowed_subkeys))
             
             r.pop("Node Connectivity")
             r.pop("Edge Connectivity")
