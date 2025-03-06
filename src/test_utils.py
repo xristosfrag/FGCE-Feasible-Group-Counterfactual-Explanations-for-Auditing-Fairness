@@ -3,6 +3,7 @@ import os
 import utils
 import pickle as pk
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from FGCE import *
 from main import *
@@ -211,34 +212,41 @@ def initialize_FGCE_attributes(datasetName='Student', skip_bandwith_calculation=
 
     return data, data_np, X, FEATURE_COLUMNS, TARGET_COLUMNS, kernel, model
 
-def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_d, k_values):
-    plt.rcParams['axes.titlesize'] = 16
-    plt.rcParams['axes.labelsize'] = 16
-    plt.rcParams['xtick.labelsize'] = 16
-    plt.rcParams['ytick.labelsize'] = 16
-    plt.rcParams['legend.fontsize'] = 16
-    fig, ax1 = plt.subplots()
+def face_plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_d, k_values, x_size, y_size, tick_params_size):
+    plt.style.use('seaborn-muted')
+    plt.rcParams.update({
+        "font.family": "serif",
+        "axes.titlesize": tick_params_size,
+        "axes.labelsize": tick_params_size,
+        "xtick.labelsize": tick_params_size,
+        "ytick.labelsize": tick_params_size,
+        "legend.fontsize": tick_params_size
+    })
+
+    fig, ax1 = plt.subplots(figsize=(x_size, y_size))
 
     x_values = np.arange(1, len(face_wij) + 1)
     x_values_offset = x_values + 0.15
-    x_values_offset2 = x_values + 0.15
 
-    ax1.plot(x_values, face_wij, '--o', color='green', label="Face Wij Distance", markersize=6, alpha=0.9, linewidth=2)
-    ax1.plot(x_values_offset, gfce_wij, '--o', color='red', label="FGCE Wij Distance", markersize=6, alpha=0.9, linewidth=2)
-    ax1.set_ylabel("Avg Wij Distance")
+    color_face_wij = '#55A868'  # Muted green
+    color_gfce_wij = '#C44E52'  # Muted red
+    color_face_dists = '#4C72B0'  # Muted blue
+    color_gfce_dists = '#8172B3'  # Muted purple
+
+    # First axis
+    ax1.plot(x_values, face_wij, '--o', color=color_face_wij, label="Face Wij Cost", markersize=8, alpha=0.9, linewidth=4)
+    ax1.plot(x_values_offset, gfce_wij, '--o', color=color_gfce_wij, label="FGCE Wij Cost", markersize=8, alpha=0.9, linewidth=4)
+    ax1.set_ylabel("Avg Wij Cost", fontsize=tick_params_size)
     ax1.set_xticks(x_values)
     ax1.set_xticklabels([int(k) for k in k_values])
-    ax1.set_xlabel("k")
+    ax1.set_xlabel("k", fontsize=tick_params_size)
     ax1.set_yscale('log')
-
-    # Adjust log-scale limits to ensure differences are visible
     ax1.set_ylim([min(min(face_wij), min(gfce_wij)) * 0.9, max(max(face_wij), max(gfce_wij)) * 1.1])
 
     ax2 = ax1.twinx()
-
-    ax2.plot(x_values, face_dists, '-o', color='blue', label="Face Vector Distances", markersize=6, alpha=0.9, linewidth=2)
-    ax2.plot(x_values_offset2, gfce_dists, '-o', color='purple', label="FGCE Vector Distances", markersize=6, alpha=0.9, linewidth=2)
-    ax2.set_ylabel("Avg Vector Distance")
+    ax2.plot(x_values, face_dists, '-o', color=color_face_dists, label="Face Vector Costs", markersize=8, alpha=0.9, linewidth=4)
+    ax2.plot(x_values_offset, gfce_dists, '-o', color=color_gfce_dists, label="FGCE Vector Costs", markersize=8, alpha=0.9, linewidth=4)
+    ax2.set_ylabel("Avg Vector Cost", fontsize=tick_params_size)
 
     # Combine legends from both axes
     handles1, labels1 = ax1.get_legend_handles_labels()
@@ -246,20 +254,28 @@ def plot(datasetName, face_dists, gfce_dists, face_wij, gfce_wij, d_method, max_
     handles = handles1 + handles2
     labels = labels1 + labels2
 
-    ax1.legend().remove()
-    plt.tight_layout()
-    fig_size = (6, 4) 
-    plt.gcf().set_size_inches(fig_size)
-    plt.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/Coverage_constrained_face_gface_comparison_d_method_{d_method}_maxd_{max_d}_normalized.pdf")
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    plt.tight_layout(pad=0)
 
+    plt.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/Coverage_constrained_face_gface_comparison_d_method_{d_method}_maxd_{max_d}_normalized.pdf",
+                bbox_inches='tight', dpi=300)
+
+    
     # Create a separate figure for the legend
-    fig_legend = plt.figure(figsize=(1, 1))
+    fig_legend = plt.figure(figsize=(4, 2))
     ax_legend = fig_legend.add_subplot(111)
-    ax_legend.legend(handles, labels, loc='center', fontsize=16)
+
+    face_wij_line = Line2D([0, 0], [0, 2], linestyle='--', marker='o', color=color_face_wij, markersize=8, linewidth=4, label="Face Wij Costs")
+    gfce_wij_line = Line2D([0, 0], [0, 1], linestyle='--', marker='o', color=color_gfce_wij, markersize=8, linewidth=4, label="FGCE Wij Costs")
+    face_dists_line = Line2D([0, 1], [0, 0], linestyle='-', marker='o', color=color_face_dists, markersize=8, linewidth=4, label="Face Vector Costs")
+    gfce_dists_line = Line2D([0, 1], [0, 0], linestyle='-', marker='o', color=color_gfce_dists, markersize=8, linewidth=4, label="FGCE Vector Costs")
+    ax_legend.legend([face_wij_line, gfce_wij_line, face_dists_line, gfce_dists_line], \
+                     [line.get_label() for line in [face_wij_line, gfce_wij_line, face_dists_line, gfce_dists_line]], loc='center', fontsize=14, frameon=False)
     ax_legend.axis('off')
-    fig_legend.tight_layout()
-    fig_legend.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/{datasetName}_legend.pdf")
+    fig_legend.savefig(f"{FGCE_DIR}/tmp/{datasetName}/figs/{datasetName}_legend.pdf",
+                    bbox_inches='tight', dpi=300)
     plt.show()
+
     
 def nice_numbers(range_min, range_max, num_ticks, score='k'):
     """
