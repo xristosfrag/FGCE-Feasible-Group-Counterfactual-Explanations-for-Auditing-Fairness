@@ -501,43 +501,53 @@ def plot_feature_frequency(dataset_name, action_frequency_g0, action_frequency_g
     plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{dataset_name}{sep}figs{sep}attribution.pdf")
     plt.show()
 
-def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1, sx, sy, freq_threshold=None):
-    for wcc, action_frequency_g0_wcc in action_frequency_g0.items():
+def plot_feature_frequency_per_wcc(datasetName, action_frequency_g0, action_frequency_g1, sx, sy, params_size, freq_threshold=None):
+    plt.style.use('seaborn-muted')
+    plt.rcParams.update({"font.family": "serif"})
+
+    sorted_action_frequency_g0 = dict(sorted(action_frequency_g0.items()))
+    
+    for wcc, action_frequency_g0_wcc in sorted_action_frequency_g0.items():
         print(f"WCC: {wcc}")
         filtered_keys_g0 = set(key for key, value in action_frequency_g0_wcc.items() if freq_threshold is None or value > freq_threshold)
         sorted_keys_g0 = sorted(filtered_keys_g0, key=lambda x: action_frequency_g0_wcc.get(x, 0), reverse=True)
-        
-        fig_size = (sx, sy) 
-        plt.gcf().set_size_inches(fig_size)
-        plt.barh(sorted_keys_g0, [action_frequency_g0_wcc.get(key, 0) for key in sorted_keys_g0], height=0.3, color='mediumseagreen', align='center')
-        plt.yticks(range(len(sorted_keys_g0)), [dataset_feature_descriptions[datasetName].get(key, key) for key in sorted_keys_g0], fontsize=16)
-        plt.ylabel('Attribute Description', fontsize=16)
-        plt.xlabel('Frequency (%)', fontsize=16)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-        plt.gca().invert_yaxis()
-        plt.grid(axis='x')
+        fig, ax = plt.subplots(figsize=(sx, sy))
+        color_g0 = '#CC6677'  
+        ax.barh(sorted_keys_g0, [action_frequency_g0_wcc.get(key, 0) for key in sorted_keys_g0], 
+                height=0.3, color=color_g0, align='center')
+
+        ax.set_yticks(range(len(sorted_keys_g0)))
+        ax.set_yticklabels([dataset_feature_descriptions[datasetName].get(key, key) for key in sorted_keys_g0], fontsize=params_size)
+        ax.set_ylabel('Attribute', fontsize=18)
+        ax.set_xlabel('ACF', fontsize=18)
+        ax.tick_params(axis='x', labelsize=params_size)
+        ax.tick_params(axis='y', labelsize=params_size)
+        ax.invert_yaxis()
+        # ax.grid(axis='x', linestyle='--', alpha=0.2)
         plt.tight_layout()
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf")
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf", dpi=300)
         plt.show()
 
-    for wcc, action_frequency_g1_wcc in action_frequency_g1.items():    
+    sorted_action_frequency_g1 = dict(sorted(action_frequency_g1.items()))
+
+    for wcc, action_frequency_g1_wcc in sorted_action_frequency_g1.items():
         print(f"WCC: {wcc}")
         filtered_keys_g1 = set(key for key, value in action_frequency_g1_wcc.items() if freq_threshold is None or value > freq_threshold)
         sorted_keys_g1 = sorted(filtered_keys_g1, key=lambda x: action_frequency_g1_wcc.get(x, 0), reverse=True)
-        
-        fig_size = (sx, sy) 
-        plt.gcf().set_size_inches(fig_size)
-        plt.barh(sorted_keys_g1, [action_frequency_g1_wcc.get(key, 0) for key in sorted_keys_g1], height=0.3, color='coral', align='center')
-        plt.yticks(range(len(sorted_keys_g1)), [dataset_feature_descriptions[datasetName].get(key, key) for key in sorted_keys_g1], fontsize=16)
-        plt.ylabel('Attribute Description', fontsize=16)
-        plt.xlabel('Frequency (%)', fontsize=16)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-        plt.gca().invert_yaxis()
-        plt.grid(axis='x')
+        fig, ax = plt.subplots(figsize=(sx, sy))
+        color_g1 = '#882255'  
+        ax.barh(sorted_keys_g1, [action_frequency_g1_wcc.get(key, 0) for key in sorted_keys_g1], 
+                height=0.3, color=color_g1, align='center')
+        ax.set_yticks(range(len(sorted_keys_g1)))
+        ax.set_yticklabels([dataset_feature_descriptions[datasetName].get(key, key) for key in sorted_keys_g1], fontsize=params_size)
+        ax.set_ylabel('Attribute', fontsize=18)
+        ax.set_xlabel('ACF', fontsize=18)
+        ax.tick_params(axis='x', labelsize=params_size)
+        ax.tick_params(axis='y', labelsize=params_size)
+        ax.invert_yaxis()
+        # ax.grid(axis='x', linestyle='--', alpha=0.5)
         plt.tight_layout()
-        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf")
+        plt.savefig(f"{FGCE_DIR}{sep}tmp{sep}{datasetName}{sep}figs{sep}attribution_{wcc}.pdf", dpi=300)
         plt.show()
 
 def attribution_analysis(datasetName='Adult', epsilon=0.4, group_identifier='sex', group_identifier_value=None,\
